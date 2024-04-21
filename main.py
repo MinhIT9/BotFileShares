@@ -77,6 +77,31 @@ async def provide_new_activation_link(event, current_time):
     else:
         await event.respond("Hiện không còn mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
 
+@client.on(events.NewMessage(pattern='/checkcode'))
+async def check_code_availability(event):
+    # Đếm số lượng mã theo từng thời hạn sử dụng
+    duration_counts = {}
+    for code_info in activation_links.values():
+        duration = code_info['duration']
+        if duration in duration_counts:
+            duration_counts[duration] += 1
+        else:
+            duration_counts[duration] = 1
+    
+    # Tạo và gửi thông báo về số lượng mã theo từng thời hạn
+    response_message = "<b>Tình trạng mã kích hoạt VIP hiện tại:</b>\n"
+    for duration, count in sorted(duration_counts.items()):
+        response_message += f"Code VIP: <b>{duration} ngày</b> - còn lại: <b>{count} mã</b>\n"
+    
+    # Thêm thông báo hướng dẫn sử dụng /kichhoat
+    response_message += "\n 👍 Sử dụng <b>/kichhoat</b> để lấy mã kích hoạt VIP.\n \n Bản quyền thuộc về @BotShareFilesTTG"
+
+    # Kiểm tra nếu có mã khả dụng để gửi phản hồi
+    if duration_counts:
+        await event.respond(response_message, parse_mode='html')
+    else:
+        await event.respond("Hiện không có mã kích hoạt nào khả dụng.")
+
 
 @client.on(events.NewMessage(pattern='/kichhoat'))
 async def request_activation_link(event):
