@@ -1,0 +1,52 @@
+------
+# mt venv
+Tạo Môi Trường Ảo:
+- Windows: python -m venv ten_moi_truong
+
+Kích Hoạt Môi Trường Ảo:
+- Windows: ten_moi_truong\Scripts\activate
+
+# mt virtualenv
+Create environment virtualenv
+pip install virtualenv
+
+Tạo Một Môi Trường Ảo
+virtualenv ten_moi_truong_ao
+
+# Kích Hoạt Môi Trường Ảo
+- Windows: .\ten_moi_truong_ao\Scripts\activate
+- macOS và Linux: source ten_moi_truong_ao/bin/activate
+
+# Vô Hiệu Hóa Môi Trường Ảo
+deactivate
+------
+requirements.txt: Danh sách các gói Python cần thiết để chạy ứng dụng. 
+Sử dụng lệnh **pip install -r requirements.txt** để cài đặt tất cả cùng một lúc.
+lấy gói " pip freeze > requirements.txt "
+pyinstaller --onefile your_main_script.py
+---------
+
+
+
+[{"ChannelMapping":{"1":"@chanws1","2":"chan9090s","3":"-1002133340256"},"Title":"Title 1","id":"1"},{"ChannelMapping":{},"Title":"Title 2","id":"2"},{"ChannelMapping":{},"Title":"Title 3","id":"3"}]
+
+[
+    {
+      "message_id_mapping": {
+        "482": {
+          "@chanws1": 621,
+          "chan9090s": 429,
+          "-1002133340256": 189
+        }
+      },
+      "Title": "Title 1",
+      "id": "1"
+    },
+    {
+      "message_id_mapping": {
+  
+      },
+      "Title": "Title 2",
+      "id": "2"
+    }
+  ]
