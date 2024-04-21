@@ -1,4 +1,4 @@
-import datetime
+import datetime, random
 from telethon import TelegramClient, events, Button
 from datetime import timedelta
 
@@ -8,21 +8,24 @@ bot_token = '7068498391:AAHumK7nbOHxdYvn7B81aysNxyy3oSWam4Y'
 your_bot_username = "sharefileTTGbot"
 channel_id = -1002001373543
 
-# Lưu trữ các link để lấy mã
 activation_links = {
-    "123": "https://tiengioi.vip/Code1",
-    "234": "https://tiengioi.vip/Code2",
-    "456": "https://tiengioi.vip/Code3"
+    "12": {"url": "https://tiengioi.vip/Code1", "duration": 3},
+    "13": {"url": "https://tiengioi.vip/Code2", "duration": 6},
+    "14": {"url": "https://tiengioi.vip/Code3", "duration": 10},
+    "15": {"url": "https://tiengioi.vip/Code4", "duration": 10},
+    "16": {"url": "https://tiengioi.vip/Code5", "duration": 10},
+    "17": {"url": "https://tiengioi.vip/Code6", "duration": 10}
 }
+
 
 # Theo dõi các mã đã được gửi để kích hoạt và thời gian hết hạn
 pending_activations = {}
 users_access = {}
+# Tạo một từ điển mới để theo dõi link đã được phân phối cho người dùng nào
+user_link_map = {}
 # Đây là nơi chúng ta sẽ lưu trữ các link đã được phân phối
 distributed_links = {}
-# Đặt thời gian kích hoạt cơ bản là 3 ngày
-BASIC_ACTIVATION_DURATION = timedelta(days=3)
-LINK_DURATION = timedelta(minutes=4) #thời gian hết hạn link
+LINK_DURATION = timedelta(minutes=1) #thời gian hết hạn link
 
 
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
@@ -44,51 +47,33 @@ async def request_activation_link(event):
     check_pending_activations()
     current_time = datetime.datetime.now()
 
-    # Kiểm tra nếu người dùng đã kích hoạt và có quyền truy cập
-    if event.sender_id in users_access and users_access[event.sender_id] > current_time:
-        code, link = next((item for item in activation_links.items() if item[0] not in distributed_links), (None, None))
-        if code:
-            distributed_links[event.sender_id] = link
-            pending_activations[event.sender_id] = current_time + LINK_DURATION
+    # Kiểm tra xem người dùng đã nhận link chưa và link đó có còn hiệu lực không
+    user_link_key = user_link_map.get(event.sender_id)
+    if user_link_key:
+        link_info = activation_links.get(user_link_key)
+        link_expiry = pending_activations.get(event.sender_id)
+        if link_info and link_expiry and current_time < link_expiry:
             await event.respond(
-                f"Bạn đã kích hoạt trước đó. Đây là link mới để lấy mã kích hoạt bổ sung: {link}",
-                buttons=[Button.url("Lấy mã kích hoạt bổ sung", link)]
+                f"Bạn đã yêu cầu kích hoạt trước đó và link vẫn còn hiệu lực. Vui lòng truy cập link sau để lấy mã kích hoạt của bạn: {link_info['url']}",
+                buttons=[Button.url("Lấy mã kích hoạt", link_info['url'])]
             )
-        else:
-            await event.respond("Hiện không còn mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
-        return
+            return
 
-    # Kiểm tra nếu link kích hoạt đã được gửi trước đó và vẫn còn hiệu lực
-    if event.sender_id in pending_activations:
-        link = distributed_links[event.sender_id]
-        link_expiry = pending_activations[event.sender_id]
-        if current_time < link_expiry:
-            await event.respond(
-                f"Bạn đã yêu cầu kích hoạt trước đó. Vui lòng truy cập link sau để lấy mã kích hoạt của bạn: {link}",
-                buttons=[Button.url("Lấy mã kích hoạt", link)]
-            )
-        else:
-            code, link = next((item for item in activation_links.items() if item[0] not in distributed_links), (None, None))
-            if code:
-                distributed_links[event.sender_id] = link
-                pending_activations[event.sender_id] = current_time + LINK_DURATION
-                await event.respond(
-                    f"Link đã hết hạn, đây là link mới để lấy mã kích hoạt: {link}",
-                    buttons=[Button.url("Lấy mã kích hoạt", link)]
-                )
-            else:
-                await event.respond("Hiện không còn mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
+    # Cấp phát link mới cho người dùng
+    available_codes = [code for code in activation_links if code not in user_link_map.values()]
+    if available_codes:
+        random_code = random.choice(available_codes)
+        link = activation_links[random_code]['url']
+        user_link_map[event.sender_id] = random_code
+        pending_activations[event.sender_id] = current_time + LINK_DURATION
+        await event.respond(
+            f"Để kích hoạt, vui lòng truy cập link sau và lấy mã kích hoạt của bạn: {link}",
+            buttons=[Button.url("Lấy mã kích hoạt", link)]
+        )
     else:
-        code, link = next((item for item in activation_links.items() if item[0] not in distributed_links), (None, None))
-        if code:
-            distributed_links[event.sender_id] = link
-            pending_activations[event.sender_id] = current_time + LINK_DURATION
-            await event.respond(
-                f"Để kích hoạt, vui lòng truy cập link sau và lấy mã kích hoạt của bạn: {link}",
-                buttons=[Button.url("Lấy mã kích hoạt", link)]
-            )
-        else:
-            await event.respond("Hiện không còn mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
+        await event.respond("Hiện không còn mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
+
+
 
 
 @client.on(events.NewMessage(pattern='/code (.+)'))
@@ -97,21 +82,20 @@ async def activate_code(event):
     code = event.pattern_match.group(1).strip()
     current_time = datetime.datetime.now()
 
-    # Kiểm tra mã kích hoạt có hợp lệ và chưa được sử dụng hoặc đã sử dụng bởi người dùng này
     if code in activation_links and (code not in distributed_links or distributed_links.get(code) == event.sender_id):
-        # Kiểm tra xem người dùng đã có quyền truy cập trước đó chưa và thời gian sử dụng còn lại
+        code_info = activation_links[code]
+        duration = timedelta(days=code_info["duration"])
         if event.sender_id in users_access and users_access[event.sender_id] > current_time:
-            new_expiry_time = users_access[event.sender_id] + BASIC_ACTIVATION_DURATION
+            new_expiry_time = users_access[event.sender_id] + duration
         else:
-            new_expiry_time = current_time + BASIC_ACTIVATION_DURATION
-            
+            new_expiry_time = current_time + duration
+        
         users_access[event.sender_id] = new_expiry_time
         distributed_links[code] = event.sender_id
-        del activation_links[code]
+        del activation_links[code]  # Xóa mã khỏi pool
         await event.respond(f"Bạn đã kích hoạt thành công! Thời gian sử dụng mới của bạn là {new_expiry_time.strftime('%Y-%m-%d %H:%M:%S')}.")
     else:
         await event.respond("Mã kích hoạt không hợp lệ hoặc đã được sử dụng.")
-
 
 @client.on(events.NewMessage(pattern='/start'))
 async def send_welcome(event):

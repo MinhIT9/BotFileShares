@@ -7,3 +7,7 @@ Lệnh /code [code]:
 Khi người dùng nhập mã lần đầu, mã sẽ được kích hoạt và xoá khỏi pool.
 Nếu người dùng đã kích hoạt và sử dụng /kichhoat, bot sẽ cung cấp liên kết mới để lấy mã cộng dồn thời gian sử dụng.
 
+
+Tôi muốn khi người dùng lần đầu dùng /kichhoat thì sẽ gửi link A
+khi họ click lại /kichhoat lần 2 3 4 mà vẫn trong thời gian LINK_DURATION thì bot vẫn gửi lại link A, nếu code của link A được sử dụng hoặc hết hạn thì sẽ tạo lại 1 link B mới
+khi user dùng /code codeA thì kích hoạt user với thời gian theo activation_links, trong thời hạn bot đã kích hoạt nếu user dùng lệnh /kichhoat thì sẽ thông báo user đã kích hoạt VIP nếu muốn tăng thêm hạn sử dụng thì vào link bên dưới để nhận mã mới
