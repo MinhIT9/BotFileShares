@@ -130,8 +130,6 @@ async def request_activation_link(event):
         # Người dùng chưa có link, cung cấp link mới
         await provide_new_activation_link(event, current_time)
 
-
-
 @client.on(events.NewMessage(pattern='/code (.+)'))
 async def activate_code(event):
     check_pending_activations()
