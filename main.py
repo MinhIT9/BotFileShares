@@ -1,36 +1,9 @@
+# main.py
+
 import datetime, random
-from telethon import TelegramClient, events, Button
+from telethon import events, Button
 from datetime import timedelta
-
-api_id = '21303563'
-api_hash = '6ad9d81fb1c8e246de8255d7ecc449f5'
-bot_token = '7068498391:AAHumK7nbOHxdYvn7B81aysNxyy3oSWam4Y'
-your_bot_username = "sharefileTTGbot"
-channel_id = -1002001373543
-
-activation_links = {
-    "12": {"url": "https://tiengioi.vip/Code1", "duration": 3},
-    "13": {"url": "https://tiengioi.vip/Code2", "duration": 6},
-    "14": {"url": "https://tiengioi.vip/Code3", "duration": 10},
-    "15": {"url": "https://tiengioi.vip/Code4", "duration": 10},
-    "16": {"url": "https://tiengioi.vip/Code5", "duration": 10},
-    "17": {"url": "https://tiengioi.vip/Code6", "duration": 10}
-}
-
-
-# Theo dõi các mã đã được gửi để kích hoạt và thời gian hết hạn
-pending_activations = {}
-users_access = {}
-# Tạo một từ điển mới để theo dõi link đã được phân phối cho người dùng nào
-user_link_map = {}
-# Đây là nơi chúng ta sẽ lưu trữ các link đã được phân phối
-distributed_links = {}
-# LINK_DURATION = timedelta(minutes=1) #thời gian hết hạn link
-LINK_DURATION = timedelta(seconds=10)  # thời gian hết hạn link là 30 giây
-
-
-
-client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
+from config import your_bot_username, channel_id, pending_activations, users_access, user_link_map, distributed_links, LINK_DURATION, activation_links, client, bot_token
 
 # Đây là hàm kiểm tra các kích hoạt đang chờ và nằm ở cấp độ module
 def check_pending_activations():
@@ -175,8 +148,9 @@ async def handler(event):
     else:
         await event.respond("Bạn cần kích hoạt truy cập để sử dụng chức năng này.")
 
-
 # Bắt đầu client
+
 print("Khởi chạy bot thành công!")
-client.start(bot_token=bot_token)
+client.start(bot_token=bot_token)    
+
 client.run_until_disconnected()
