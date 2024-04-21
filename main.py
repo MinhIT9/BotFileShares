@@ -1,9 +1,30 @@
 # main.py
 
-import datetime, random
+import datetime, random, requests, threading
 from telethon import events, Button
 from datetime import timedelta
-from config import your_bot_username, channel_id, pending_activations, users_access, user_link_map, distributed_links, LINK_DURATION, activation_links, client, bot_token
+from api_utlis import delete_code_from_api
+from config import (your_bot_username, channel_id, pending_activations,users_access, 
+                    user_link_map, distributed_links, LINK_DURATION, activation_links,
+                    client, bot_token, USER_ACTIVATIONS_API)
+
+
+def initialize_activation_links():
+    try:
+        response = requests.get(USER_ACTIVATIONS_API)
+        response.raise_for_status()
+        # Lưu ý: Đoạn mã sau giả định rằng dữ liệu từ API là một list của dict
+        return {
+            item['Code']: {
+                'url': item['Link'],
+                'duration': item['duration'],
+                'id': item['id']  # Lưu ý thêm dòng này
+            } for item in response.json()
+        }
+    except requests.RequestException as e:
+        print(f"Error fetching activation links: {e}")
+        return {}  # Trả về dict trống nếu có lỗi
+
 
 # Đây là hàm kiểm tra các kích hoạt đang chờ và nằm ở cấp độ module
 def check_pending_activations():
@@ -109,17 +130,24 @@ async def activate_code(event):
     code = event.pattern_match.group(1).strip()
     current_time = datetime.datetime.now()
 
+    # Kiểm tra xem code có trong activation_links và chưa được phân phối hoặc đã được phân phối cho sender_id hiện tại
     if code in activation_links and (code not in distributed_links or distributed_links.get(code) == event.sender_id):
         code_info = activation_links[code]
         duration = timedelta(days=code_info["duration"])
-        if event.sender_id in users_access and users_access[event.sender_id] > current_time:
-            new_expiry_time = users_access[event.sender_id] + duration
-        else:
-            new_expiry_time = current_time + duration
+        new_expiry_time = users_access.get(event.sender_id, current_time) + duration
         
         users_access[event.sender_id] = new_expiry_time
         distributed_links[code] = event.sender_id
+        
+        # Kích hoạt mã và lấy id để xóa trên API
+        code_id = code_info['id']  # Giả sử mỗi entry có 'id'
+        
         del activation_links[code]  # Xóa mã khỏi pool
+        
+        # Xóa mã khỏi API
+        threading.Thread(target=delete_code_from_api, args=(code_id,)).start()
+        
+        print("activation_links after deletion: ", activation_links)
         await event.respond(f"Bạn đã kích hoạt thành công! Thời gian sử dụng mới của bạn là {new_expiry_time.strftime('%Y-%m-%d %H:%M:%S')}.")
     else:
         await event.respond("Mã kích hoạt không hợp lệ hoặc đã được sử dụng.")
@@ -149,8 +177,14 @@ async def handler(event):
         await event.respond("Bạn cần kích hoạt truy cập để sử dụng chức năng này.")
 
 # Bắt đầu client
+client.start(bot_token=bot_token)
 
-print("Khởi chạy bot thành công!")
-client.start(bot_token=bot_token)    
-
-client.run_until_disconnected()
+# Hàm main chính để khởi động bot
+if __name__ == '__main__':
+    # Khởi tạo activation_links từ API trước khi bot khởi động
+    activation_links.update(initialize_activation_links())
+    print("activation_links main: ", activation_links)
+    
+    print("Khởi chạy bot thành công!")
+    client.start(bot_token=bot_token)
+    client.run_until_disconnected()

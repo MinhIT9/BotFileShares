@@ -10,7 +10,8 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 your_bot_username = "sharefileTTGbot"
 channel_id = -1002001373543
 
-USER_ACTIVATIONS_API="https://6624929304457d4aaf9c7cd6.mockapi.io/user_activations"
+USER_ACTIVATIONS_API = "https://6624929304457d4aaf9c7cd6.mockapi.io/activation_links"
+
 
 # Theo dõi các mã đã được gửi để kích hoạt và thời gian hết hạn
 pending_activations = {}
@@ -23,11 +24,14 @@ distributed_links = {}
 
 LINK_DURATION = timedelta(minutes=6) #thời gian hết hạn link
 
-activation_links = {
-    "12": {"url": "https://tiengioi.vip/Code1", "duration": 3},
-    "13": {"url": "https://tiengioi.vip/Code2", "duration": 6},
-    "14": {"url": "https://tiengioi.vip/Code3", "duration": 10},
-    "15": {"url": "https://tiengioi.vip/Code4", "duration": 10},
-    "16": {"url": "https://tiengioi.vip/Code5", "duration": 10},
-    "17": {"url": "https://tiengioi.vip/Code6", "duration": 10}
-}
+activation_links = {}
+
+
+# activation_links = {
+#     "12": {"url": "https://tiengioi.vip/Code1", "duration": 3},
+#     "13": {"url": "https://tiengioi.vip/Code2", "duration": 6},
+#     "14": {"url": "https://tiengioi.vip/Code3", "duration": 10},
+#     "15": {"url": "https://tiengioi.vip/Code4", "duration": 10},
+#     "16": {"url": "https://tiengioi.vip/Code5", "duration": 10},
+#     "17": {"url": "https://tiengioi.vip/Code6", "duration": 10}
+# }
