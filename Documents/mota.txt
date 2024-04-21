@@ -1,0 +1,9 @@
+Lệnh /kichhoat:
+Khi người dùng gọi lệnh này lần đầu, bot sẽ gửi một liên kết để lấy mã kích hoạt từ pool.
+Liên kết này sẽ duy trì trong 4 phút.
+Nếu lệnh được gọi lại trong khoảng thời gian 4 phút và mã chưa được sử dụng hoặc chưa hết hạn, người dùng sẽ nhận lại liên kết ban đầu.
+Nếu mã đã được sử dụng hoặc hết hạn, bot sẽ gửi liên kết mới.
+Lệnh /code [code]:
+Khi người dùng nhập mã lần đầu, mã sẽ được kích hoạt và xoá khỏi pool.
+Nếu người dùng đã kích hoạt và sử dụng /kichhoat, bot sẽ cung cấp liên kết mới để lấy mã cộng dồn thời gian sử dụng.
+
