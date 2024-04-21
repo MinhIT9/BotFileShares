@@ -38,6 +38,43 @@ def check_pending_activations():
         print(f"Activation link for user {user} has expired and is now available again.")
 
 
+@client.on(events.NewMessage(pattern='/kichhoat(?: (.*))?'))
+async def send_activation_link(event):
+    check_pending_activations()
+    args = event.pattern_match.group(1)
+
+    if args:
+        # Người dùng đã nhập mã kích hoạt
+        code = args.strip()
+        if code in activation_links and code in distributed_links and distributed_links[code] == event.sender_id:
+            # Kích hoạt mã nếu mã đúng và được phân phối cho người dùng này
+            users_access[event.sender_id] = datetime.datetime.now() + datetime.timedelta(days=30) # Thời gian truy cập sau khi kích hoạt
+            del distributed_links[code]  # Xóa người dùng khỏi danh sách distributed_links
+            del pending_activations[event.sender_id]  # Xóa người dùng khỏi danh sách pending_activations
+            await event.respond("Bạn đã kích hoạt thành công! Bây giờ bạn có thể sử dụng các chức năng của bot.")
+        else:
+            await event.respond("Mã kích hoạt không hợp lệ hoặc đã được sử dụng.")
+    else:
+        # Nếu không có mã được cung cấp, phân phối link kích hoạt
+        available_code = None
+        for code, link in activation_links.items():
+            if code not in distributed_links:
+                available_code = code
+                break
+        
+        if not available_code:
+            await event.respond("Hiện tất cả các mã kích hoạt đều đang được sử dụng, vui lòng thử lại sau.")
+        else:
+            distributed_links[available_code] = event.sender_id
+            pending_activations[event.sender_id] = datetime.datetime.now() + datetime.timedelta(minutes=10)
+            await event.respond(
+                f"Để kích hoạt, vui lòng truy cập link sau và lấy mã kích hoạt của bạn: {activation_links[available_code]}",
+                buttons=[Button.url("Lấy mã kích hoạt", activation_links[available_code])]
+            )
+
+
+
+
 @client.on(events.NewMessage(pattern='/start'))
 async def send_welcome(event):
     check_pending_activations()
@@ -46,29 +83,6 @@ async def send_welcome(event):
         channel_msg_id = int(event.message.message.split('_')[-1])
         await client.forward_messages(event.sender_id, channel_msg_id, channel_id)
     await event.respond("Chào mừng bạn đến với bot của chúng tôi! Dùng /kichhoat để kích hoạt truy cập.")
-
-
-@client.on(events.NewMessage(pattern='/kichhoat'))
-async def send_activation_link(event):
-    check_pending_activations()
-    # Tìm link chưa được phân phối
-    available_link = None
-    for code, link in activation_links.items():
-        if link not in distributed_links.values():
-            available_link = link
-            break
-    
-    # Nếu tất cả các link đều đã được phân phối
-    if not available_link:
-        await event.respond("Hiện tất cả các mã kích hoạt đều đang được sử dụng, vui lòng thử lại sau.")
-    else:
-        # Phân phối link và thiết lập thời gian hết hạn
-        distributed_links[event.sender_id] = available_link
-        pending_activations[event.sender_id] = datetime.datetime.now() + datetime.timedelta(minutes=10)
-        await event.respond(
-            f"Để kích hoạt, vui lòng truy cập link sau: {available_link}",
-            buttons=[Button.url("Lấy mã kích hoạt", available_link)]
-        )
 
 @client.on(events.NewMessage(func=lambda e: e.is_private))
 async def handler(event):
