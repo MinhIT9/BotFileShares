@@ -37,31 +37,41 @@ def check_pending_activations():
         del pending_activations[user]
         print(f"Activation link for user {user} has expired and is now available again.")
 
-
 @client.on(events.NewMessage(pattern='/kichhoat(?: (.*))?'))
 async def send_activation_link(event):
-    # Cập nhật trạng thái của các kích hoạt đang chờ
     check_pending_activations()
-
     args = event.pattern_match.group(1)
 
-    if args:
-        # Người dùng đã nhập mã kích hoạt
-        code = args.strip()
-        if code in activation_links and code in distributed_links and distributed_links[code] == event.sender_id:
-            # Mã đúng và thuộc về người dùng này
-            users_access[event.sender_id] = datetime.datetime.now() + datetime.timedelta(days=30)  # Thời gian truy cập sau kích hoạt
-            await event.respond("Bạn đã kích hoạt thành công! Bây giờ bạn có thể sử dụng các chức năng của bot.")
+    # Kiểm tra nếu người dùng đã kích hoạt và còn thời hạn sử dụng
+    if event.sender_id in users_access and users_access[event.sender_id] > datetime.datetime.now():
+        remaining_time = users_access[event.sender_id] - datetime.datetime.now()
+        remaining_days = remaining_time.days
+        await event.respond(f"Bạn đã kích hoạt tài khoản, thời hạn còn lại là {remaining_days} ngày. "
+                            "Nếu bạn muốn lấy thêm code để tăng thêm thời gian sử dụng thì vào link dưới.",
+                            buttons=[Button.url("Lấy mã kích hoạt thêm", "https://tiengioi.vip/GetMoreCodes")])
+        return
 
-            # Loại bỏ mã và link khỏi bể và danh sách phân phối
+    # Tiếp tục với logic phân phối link và kích hoạt mã
+    if args:
+        code = args.strip()
+        # Kiểm tra xem mã có hợp lệ và chưa được phân phối, hoặc đã hết hạn phân phối
+        if code in activation_links and (code not in distributed_links or distributed_links[code] == event.sender_id):
+            # Xác định thời gian hết hạn hiện tại hoặc khởi tạo mới nếu chưa có
+            expiry_time = users_access.get(event.sender_id, datetime.datetime.now())
+            # Cộng dồn thời gian sử dụng và cập nhật thông tin kích hoạt
+            new_expiry_time = max(expiry_time, datetime.datetime.now()) + datetime.timedelta(days=30)
+            users_access[event.sender_id] = new_expiry_time
+            await event.respond(f"Bạn đã kích hoạt thành công! Thời gian sử dụng của bạn hiện giờ là {(new_expiry_time - datetime.datetime.now()).days} ngày.")
+            
+            # Xóa mã và link đã kích hoạt khỏi các cấu trúc dữ liệu
             del activation_links[code]
-            del distributed_links[code]
-            if event.sender_id in pending_activations:
-                del pending_activations[event.sender_id]
+            distributed_links.pop(code, None)
+            pending_activations.pop(event.sender_id, None)
         else:
+            # Thông báo lỗi nếu mã không hợp lệ hoặc đã được sử dụng
             await event.respond("Mã kích hoạt không hợp lệ hoặc đã được sử dụng.")
     else:
-        # Nếu không có mã được cung cấp, phân phối link kích hoạt
+        # Người dùng nhập /kichhoat mà không có mã
         available_code = None
         for code, link in activation_links.items():
             if code not in distributed_links:
@@ -71,7 +81,6 @@ async def send_activation_link(event):
         if not available_code:
             await event.respond("Hiện tất cả các mã kích hoạt đều đang được sử dụng, vui lòng thử lại sau.")
         else:
-            # Phân phối link và thiết lập thời gian hết hạn
             distributed_links[available_code] = event.sender_id
             pending_activations[event.sender_id] = datetime.datetime.now() + datetime.timedelta(minutes=10)
             await event.respond(
