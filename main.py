@@ -24,7 +24,7 @@ async def update_activation_links_periodically():
             print(f"Error fetching activation links: {e}")
         
         # Chờ 10 phút trước khi chạy lại hàm
-        await asyncio.sleep(600)
+        await asyncio.sleep(3600)
 
 # Hàm đồng bộ để lấy activation_links từ API
 def fetch_activation_links():
@@ -73,8 +73,8 @@ async def provide_new_activation_link(event, current_time):
         pending_activations[event.sender_id] = current_time + LINK_DURATION
         # Gửi link mới
         await event.respond(
-            f"Để kích hoạt, vui lòng truy cập link sau và lấy mã kích hoạt của bạn: {link}",
-            buttons=[Button.url("Lấy mã kích hoạt", link)]
+            f"<b>Để kích hoạt</b>, vui lòng vào link sau và lấy mã kích hoạt của bạn: <i>{link}</i> \n \n👌 Các lệnh có thể sử dụng: \n<b>/kichhoat</b> : Dùng để lấy Link CODE \n<b>/code MaCuaBan </b> : ví dụ: <b>/code 12345</b> nhấn enter để kích hoạt \n\n<b>/checkcode</b> : Để xem còn bao nhiều CODE VIP bên trong BOT",
+            buttons=[Button.url("Lấy mã kích hoạt", link)],parse_mode='html'
         )
     else:
         await event.respond("Hiện không còn mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
@@ -118,6 +118,27 @@ async def add_new_code(event):
             else:
                 await event.respond(f"Định dạng không đúng: {line}")
                 print(f"Incorrect format for line: {line}")
+                
+@client.on(events.NewMessage(pattern='/updatecode'))
+async def handle_update_code_command(event):
+    # Gọi hàm cập nhật code từ API ngay lập tức
+    print("Received request to update codes immediately.")
+    try:
+        new_activation_links = await client.loop.run_in_executor(None, fetch_activation_links)
+        if new_activation_links:
+            # Cập nhật activation_links global
+            global activation_links
+            activation_links = new_activation_links
+            await event.respond("Cập nhật mã kích hoạt thành công!")
+            print(f"Activation links updated at {datetime.datetime.now()}.")
+            print(activation_links)
+        else:
+            await event.respond("Không thể cập nhật mã kích hoạt từ API.")
+            print("Failed to fetch activation links from API.")
+    except Exception as e:
+        await event.respond(f"Lỗi khi cập nhật mã: {str(e)}")
+        print(f"Error updating activation links: {e}")                
+
 
 @client.on(events.NewMessage(pattern='/checkcode'))
 async def check_code_availability(event):
@@ -133,10 +154,10 @@ async def check_code_availability(event):
     # Tạo và gửi thông báo về số lượng mã theo từng thời hạn
     response_message = "<b>Tình trạng mã kích hoạt VIP hiện tại:</b>\n"
     for duration, count in sorted(duration_counts.items()):
-        response_message += f"Code VIP: <b>{duration} ngày</b> - còn lại: <b>{count} mã</b>\n"
+        response_message += f"Code VIP: <b>{duration} ngày</b> - còn lại: <b>{count} mã</b> \n"
     
     # Thêm thông báo hướng dẫn sử dụng /kichhoat
-    response_message += "\n 👍 Sử dụng <b>/kichhoat</b> để lấy mã kích hoạt VIP.\n \n Bản quyền thuộc về @BotShareFilesTTG"
+    response_message += "\n Mã hoàn toàn ngẫu nhiên,\nnên chúc các bạn may mắn nhé! \n \n 👍 Sử dụng <b>/kichhoat</b> để lấy mã kích hoạt VIP.\n \n Bản quyền thuộc về @BotShareFilesTTG"
 
     # Kiểm tra nếu có mã khả dụng để gửi phản hồi
     if duration_counts:
@@ -163,7 +184,7 @@ async def request_activation_link(event):
             link = activation_links[code]['url']
             await event.respond(
                 f"Bạn đã yêu cầu kích hoạt trước đó và link vẫn còn hiệu lực. Vui lòng truy cập link sau để lấy mã kích hoạt của bạn: {link}",
-                buttons=[Button.url("Lấy mã kích hoạt", link)]
+                buttons=[Button.url("Lấy mã kích hoạt", link)], parse_mode='html'
             )
         else:
             # Link đã hết hạn, cung cấp link mới
@@ -207,7 +228,7 @@ async def send_welcome(event):
     if event.message.message.startswith('/start channel_'):
         channel_msg_id = int(event.message.message.split('_')[-1])
         await client.forward_messages(event.sender_id, channel_msg_id, channel_id)
-    await event.respond("Chào mừng bạn đến với bot của chúng tôi! Dùng /kichhoat để kích hoạt truy cập.")
+    await event.respond("❤️ BOT Share File Chúc bạn xem phim vui vẻ! \n \n <b>Copyright: @BotShareFilesTTG</b> \n \n Dùng /kichhoat để kích hoạt VIP Free.", parse_mode='html')
 
 @client.on(events.NewMessage(func=lambda e: e.is_private))
 async def handler(event):
@@ -220,7 +241,7 @@ async def handler(event):
             caption = event.message.text if event.message.text else ""
             msg = await client.send_file(channel_id, event.media, caption=caption)
             start_link = f'https://t.me/{your_bot_username}?start=channel_{msg.id}'
-            await event.respond(f'Media của bạn đã được gửi. Click vào link này để xem: {start_link}', buttons=[Button.url('Xem Media', start_link)])
+            await event.respond(f'Link public của bạn đã được tạo: {start_link}', buttons=[Button.url('Xem Media', start_link)])
     else:
         await event.respond("Bạn cần kích hoạt truy cập để sử dụng chức năng này.")
 
