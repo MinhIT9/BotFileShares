@@ -12,7 +12,7 @@ api_hash = '6ad9d81fb1c8e246de8255d7ecc449f5'
 
 bot_token="6737137775:AAEGBx0Y8jlV-7QxQvAIUvwU3BOpqYifSC8"
 your_bot_user = "@ShareFileVIPSbot"
-channel_id = -1002001373543
+channel_id = -1002132651013
 
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
