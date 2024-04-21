@@ -40,18 +40,24 @@ def check_pending_activations():
 
 @client.on(events.NewMessage(pattern='/kichhoat(?: (.*))?'))
 async def send_activation_link(event):
+    # Cập nhật trạng thái của các kích hoạt đang chờ
     check_pending_activations()
+
     args = event.pattern_match.group(1)
 
     if args:
         # Người dùng đã nhập mã kích hoạt
         code = args.strip()
         if code in activation_links and code in distributed_links and distributed_links[code] == event.sender_id:
-            # Kích hoạt mã nếu mã đúng và được phân phối cho người dùng này
-            users_access[event.sender_id] = datetime.datetime.now() + datetime.timedelta(days=30) # Thời gian truy cập sau khi kích hoạt
-            del distributed_links[code]  # Xóa người dùng khỏi danh sách distributed_links
-            del pending_activations[event.sender_id]  # Xóa người dùng khỏi danh sách pending_activations
+            # Mã đúng và thuộc về người dùng này
+            users_access[event.sender_id] = datetime.datetime.now() + datetime.timedelta(days=30)  # Thời gian truy cập sau kích hoạt
             await event.respond("Bạn đã kích hoạt thành công! Bây giờ bạn có thể sử dụng các chức năng của bot.")
+
+            # Loại bỏ mã và link khỏi bể và danh sách phân phối
+            del activation_links[code]
+            del distributed_links[code]
+            if event.sender_id in pending_activations:
+                del pending_activations[event.sender_id]
         else:
             await event.respond("Mã kích hoạt không hợp lệ hoặc đã được sử dụng.")
     else:
@@ -65,6 +71,7 @@ async def send_activation_link(event):
         if not available_code:
             await event.respond("Hiện tất cả các mã kích hoạt đều đang được sử dụng, vui lòng thử lại sau.")
         else:
+            # Phân phối link và thiết lập thời gian hết hạn
             distributed_links[available_code] = event.sender_id
             pending_activations[event.sender_id] = datetime.datetime.now() + datetime.timedelta(minutes=10)
             await event.respond(
