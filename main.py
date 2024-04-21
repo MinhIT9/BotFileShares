@@ -1,6 +1,6 @@
 # main.py
 
-import datetime, random, requests, threading, asyncio
+import datetime, random, requests, threading, asyncio, aiohttp
 from telethon import events, Button
 from datetime import timedelta
 from api_utlis import delete_code_from_api
@@ -78,6 +78,46 @@ async def provide_new_activation_link(event, current_time):
         )
     else:
         await event.respond("Hiện không còn mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
+        
+        
+# Xác định regex cho lệnh mới
+@client.on(events.NewMessage(pattern='/newcodettgs ([\s\S]+)'))
+async def add_new_code(event):
+    # Ghi nhận bắt đầu xử lý lệnh
+    print("Received new code addition request")
+    # Tách nội dung thành các dòng
+    codes_data = event.pattern_match.group(1)
+    codes_lines = codes_data.strip().split('\n')
+    
+    async with aiohttp.ClientSession() as session:
+        for line in codes_lines:
+            parts = line.strip().split()
+            if len(parts) == 3:
+                # Tạo từ điển cho dữ liệu JSON
+                payload = {
+                    'Code': parts[0],
+                    'Link': parts[1],
+                    'duration': int(parts[2])
+                }
+                try:
+                    # Ghi nhận chi tiết yêu cầu gửi đi
+                    print(f"Attempting to add new code: {payload}")
+                    # Thực hiện POST request
+                    async with session.post(USER_ACTIVATIONS_API, json=payload) as response:
+                        if response.status == 201:
+                            await event.respond(f"Đã thêm thành công: {payload['Code']}")
+                            print(f"Successfully added code: {payload['Code']}")
+                        else:
+                            # Đọc phản hồi lỗi từ API
+                            error_message = await response.text()
+                            await event.respond(f"Không thể thêm code {payload['Code']}: {error_message}")
+                            print(f"Failed to add code {payload['Code']}: {error_message}")
+                except aiohttp.ClientError as e:
+                    await event.respond(f"Lỗi khi kết nối với API: {str(e)}")
+                    print(f"API connection error: {str(e)}")
+            else:
+                await event.respond(f"Định dạng không đúng: {line}")
+                print(f"Incorrect format for line: {line}")
 
 @client.on(events.NewMessage(pattern='/checkcode'))
 async def check_code_availability(event):
