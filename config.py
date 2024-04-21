@@ -25,13 +25,3 @@ distributed_links = {}
 LINK_DURATION = timedelta(minutes=6) #thời gian hết hạn link
 
 activation_links = {}
-
-
-# activation_links = {
-#     "12": {"url": "https://tiengioi.vip/Code1", "duration": 3},
-#     "13": {"url": "https://tiengioi.vip/Code2", "duration": 6},
-#     "14": {"url": "https://tiengioi.vip/Code3", "duration": 10},
-#     "15": {"url": "https://tiengioi.vip/Code4", "duration": 10},
-#     "16": {"url": "https://tiengioi.vip/Code5", "duration": 10},
-#     "17": {"url": "https://tiengioi.vip/Code6", "duration": 10}
-# }

@@ -11,3 +11,28 @@ Nếu người dùng đã kích hoạt và sử dụng /kichhoat, bot sẽ cung 
 Tôi muốn khi người dùng lần đầu dùng /kichhoat thì sẽ gửi link A
 khi họ click lại /kichhoat lần 2 3 4 mà vẫn trong thời gian LINK_DURATION thì bot vẫn gửi lại link A, nếu code của link A được sử dụng hoặc hết hạn thì sẽ tạo lại 1 link B mới
 khi user dùng /code codeA thì kích hoạt user với thời gian theo activation_links, trong thời hạn bot đã kích hoạt nếu user dùng lệnh /kichhoat thì sẽ thông báo user đã kích hoạt VIP nếu muốn tăng thêm hạn sử dụng thì vào link bên dưới để nhận mã mới
+
+giúp tôi xây dựng hàm để:
+- có thể thêm code - link code - duration 1 hoặc nhiều cùng lúc
+ví dụ:
+dùng lệnh 
+/newcodettgs 
+CodeA LinkA 3
+CodeB LinkB 3
+CodeC LinkC 5
+
+thì sẽ thêm toàn bộ code này vào API
+
+
+[
+    {"Code": "1", "Link": "https://tiengioi.vip/1", "duration": 5, "id": "1"},
+    {"Code": "2", "Link": "https://tiengioi.vip/2", "duration": 5, "id": "2"},
+    {"Code": "3", "Link": "https://tiengioi.vip/3", "duration": 7, "id": "3"},
+    {"Code": "4", "Link": "https://tiengioi.vip/4", "duration": 7, "id": "4"},
+    {"Code": "5", "Link": "https://tiengioi.vip/5", "duration": 5, "id": "5"},
+    {"Code": "6", "Link": "https://tiengioi.vip/6", "duration": 3, "id": "6"},
+    {"Code": "7", "Link": "https://tiengioi.vip/7", "duration": 7, "id": "7"},
+    {"Code": "8", "Link": "https://tiengioi.vip/8", "duration": 3, "id": "8"},
+    {"Code": "9", "Link": "https://tiengioi.vip/9", "duration": 3, "id": "9"},
+    {"Code": "10", "Link": "https://tiengioi.vip/10", "duration": 7, "id": "10"}
+]

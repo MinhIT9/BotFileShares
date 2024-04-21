@@ -1,6 +1,6 @@
 # main.py
 
-import datetime, random, requests, threading
+import datetime, random, requests, threading, asyncio
 from telethon import events, Button
 from datetime import timedelta
 from api_utlis import delete_code_from_api
@@ -8,23 +8,31 @@ from config import (your_bot_username, channel_id, pending_activations,users_acc
                     user_link_map, distributed_links, LINK_DURATION, activation_links,
                     client, bot_token, USER_ACTIVATIONS_API)
 
+# Hàm async để cập nhật activation_links từ API
+async def update_activation_links_periodically():
+    while True:
+        try:
+            # Gọi hàm đồng bộ trong một thread khác
+            new_activation_links = await client.loop.run_in_executor(None, fetch_activation_links)
+            if new_activation_links:
+                # Cập nhật activation_links global
+                global activation_links
+                activation_links = new_activation_links
+                print(f"Activation links updated at {datetime.datetime.now()}.")
+                print(activation_links)
+        except Exception as e:
+            print(f"Error fetching activation links: {e}")
+        
+        # Chờ 10 phút trước khi chạy lại hàm
+        await asyncio.sleep(600)
 
-def initialize_activation_links():
-    try:
-        response = requests.get(USER_ACTIVATIONS_API)
-        response.raise_for_status()
-        # Lưu ý: Đoạn mã sau giả định rằng dữ liệu từ API là một list của dict
-        return {
-            item['Code']: {
-                'url': item['Link'],
-                'duration': item['duration'],
-                'id': item['id']  # Lưu ý thêm dòng này
-            } for item in response.json()
-        }
-    except requests.RequestException as e:
-        print(f"Error fetching activation links: {e}")
-        return {}  # Trả về dict trống nếu có lỗi
-
+# Hàm đồng bộ để lấy activation_links từ API
+def fetch_activation_links():
+    response = requests.get(USER_ACTIVATIONS_API)
+    if response.status_code == 200:
+        return {item['Code']: {'url': item['Link'], 'duration': item['duration'], 'id': item['id']} for item in response.json()}
+    else:
+        return None
 
 # Đây là hàm kiểm tra các kích hoạt đang chờ và nằm ở cấp độ module
 def check_pending_activations():
@@ -181,10 +189,11 @@ client.start(bot_token=bot_token)
 
 # Hàm main chính để khởi động bot
 if __name__ == '__main__':
-    # Khởi tạo activation_links từ API trước khi bot khởi động
-    activation_links.update(initialize_activation_links())
-    print("activation_links main: ", activation_links)
+    # Cập nhật activation_links từ API khi bot khởi động
+    activation_links.update(fetch_activation_links())
+    
+    # Thêm hàm cập nhật định kỳ vào loop
+    client.loop.create_task(update_activation_links_periodically())
     
     print("Khởi chạy bot thành công!")
-    client.start(bot_token=bot_token)
     client.run_until_disconnected()
