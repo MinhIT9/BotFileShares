@@ -6,13 +6,13 @@ api_id = '21303563'
 api_hash = '6ad9d81fb1c8e246de8255d7ecc449f5'
 
 # DEV
-# bot_token = '7068498391:AAHumK7nbOHxdYvn7B81aysNxyy3oSWam4Y'
-# your_bot_username = "sharefileTTGbot"
-# channel_id = -1002001373543
+bot_token = '7068498391:AAHumK7nbOHxdYvn7B81aysNxyy3oSWam4Y'
+your_bot_username = "sharefileTTGbot"
+channel_id = -1002001373543
 
-bot_token="6737137775:AAEGBx0Y8jlV-7QxQvAIUvwU3BOpqYifSC8"
-your_bot_user = "@ShareFileVIPSbot"
-channel_id = -1002132651013
+# bot_token="6737137775:AAEGBx0Y8jlV-7QxQvAIUvwU3BOpqYifSC8"
+# your_bot_user = "@ShareFileVIPSbot"
+# channel_id = -1002132651013
 
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 

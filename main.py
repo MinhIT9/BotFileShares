@@ -73,7 +73,7 @@ async def provide_new_activation_link(event, current_time):
         pending_activations[event.sender_id] = current_time + LINK_DURATION
         # Gửi link mới
         await event.respond(
-            f"<b>Để kích hoạt</b>, vui lòng vào link sau và lấy mã kích hoạt của bạn: <i>{link}</i> \n \n👌 Các lệnh có thể sử dụng: \n<b>/kichhoat</b> : Dùng để lấy Link CODE \n<b>/code MaCuaBan </b> : ví dụ: <b>/code 12345</b> nhấn enter để kích hoạt \n\n<b>/checkcode</b> : Để xem còn bao nhiều CODE VIP bên trong BOT",
+            f"<b>Để kích hoạt</b>, vui lòng vào link sau và lấy mã kích hoạt của bạn: <b>{link}</b> \n \n👌 Các lệnh có thể sử dụng: \n<b>/kichhoat</b> : Dùng để lấy Link CODE \n<b>/code MaCuaBan </b> : ví dụ: <b>/code 12345</b> nhấn enter để kích hoạt \n\n<b>/checkcode</b> : Để xem còn bao nhiều CODE VIP bên trong BOT",
             buttons=[Button.url("Lấy mã kích hoạt", link)],parse_mode='html'
         )
     else:
