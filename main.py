@@ -1,83 +1,45 @@
 # main.py
 
-import datetime, random, requests, threading, asyncio, aiohttp
-from telethon import events, Button
 from datetime import timedelta
-from api_utlis import delete_code_from_api
-from config import (your_bot_username, channel_id, pending_activations,users_access, 
-                    user_link_map, distributed_links, LINK_DURATION, activation_links,
-                    client, bot_token, USER_ACTIVATIONS_API)
-
-# Hàm async để cập nhật activation_links từ API
-async def update_activation_links_periodically():
-    while True:
-        try:
-            # Gọi hàm đồng bộ trong một thread khác
-            new_activation_links = await client.loop.run_in_executor(None, fetch_activation_links)
-            if new_activation_links:
-                # Cập nhật activation_links global
-                global activation_links
-                activation_links = new_activation_links
-                print(f"Activation links updated at {datetime.datetime.now()}.")
-                print(activation_links)
-        except Exception as e:
-            print(f"Error fetching activation links: {e}")
-        
-        # Chờ 10 phút trước khi chạy lại hàm
-        await asyncio.sleep(3600)
-
-# Hàm đồng bộ để lấy activation_links từ API
-def fetch_activation_links():
-    response = requests.get(USER_ACTIVATIONS_API)
-    if response.status_code == 200:
-        return {item['Code']: {'url': item['Link'], 'duration': item['duration'], 'id': item['id']} for item in response.json()}
-    else:
-        return None
+import datetime, random, asyncio, threading, aiohttp  
+from config import Config  # Import class Config
+from telethon import events, Button
+from api_utlis import delete_code_from_api, fetch_activation_links
+from config import (your_bot_username, channel_id, pending_activations, users_access, 
+                    user_link_map, distributed_links, LINK_DURATION,
+                    client, bot_token, USER_ACTIVATIONS_API, UPDATE_CODE_DURATION)
 
 # Đây là hàm kiểm tra các kích hoạt đang chờ và nằm ở cấp độ module
 def check_pending_activations():
-    global pending_activations, activation_links, user_link_map  # Sử dụng biến toàn cục
+    global pending_activations, user_link_map
     current_time = datetime.datetime.now()
     expired_users = []
 
-    # Kiểm tra xem mã kích hoạt nào đã hết hạn và cần được trả lại pool
     for user, expiry in pending_activations.items():
         if expiry < current_time:
             expired_users.append(user)
             code = user_link_map.get(user)
-            if code:
-                # Chỉ trả mã kích hoạt trở lại pool nếu nó còn tồn tại trong distributed_links
-                if code in distributed_links:
-                    activation_links[code] = distributed_links[code]
-                # Loại bỏ người dùng khỏi các bản đồ
+            if code and code in distributed_links:
+                Config.activation_links[code] = distributed_links[code]
                 user_link_map.pop(user, None)
 
-    # Xóa người dùng khỏi pending_activations và distributed_links
     for user in expired_users:
         pending_activations.pop(user, None)
         distributed_links.pop(user, None)
 
-    # Lưu ý cho người dùng quản trị biết mã nào đã được trả lại pool
     if expired_users:
-        print(f"Activation links for users {expired_users} have expired and are now available again.")
-
+        print(f"Expired activation links for {expired_users} are now available again.")
 
 async def provide_new_activation_link(event, current_time):
-    # Chọn một mã ngẫu nhiên từ pool không được sử dụng
-    available_codes = [code for code in activation_links if code not in user_link_map.values()]
+    available_codes = [code for code in Config.activation_links if code not in user_link_map.values()]
     if available_codes:
         random_code = random.choice(available_codes)
-        link = activation_links[random_code]['url']
-        # Cập nhật thông tin cho người dùng
+        link = Config.activation_links[random_code]['url']
         user_link_map[event.sender_id] = random_code
         pending_activations[event.sender_id] = current_time + LINK_DURATION
-        # Gửi link mới
-        await event.respond(
-            f"<b>Để kích hoạt</b>, vui lòng vào link sau và lấy mã kích hoạt của bạn: <b>{link}</b> \n \n👌 Các lệnh có thể sử dụng: \n<b>/kichhoat</b> : Dùng để lấy Link CODE \n<b>/code MaCuaBan </b> : ví dụ: <b>/code 12345</b> nhấn enter để kích hoạt \n\n<b>/checkcode</b> : Để xem còn bao nhiều CODE VIP bên trong BOT",
-            buttons=[Button.url("Lấy mã kích hoạt", link)],parse_mode='html'
-        )
+        await event.respond(f"<b>Activation Link:</b> {link}", buttons=[Button.url("Activate", link)], parse_mode='html')
     else:
-        await event.respond("Hiện không còn mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
+        await event.respond("No activation links available. Please try again later.")
         
         
 # Xác định regex cho lệnh mới
@@ -121,28 +83,27 @@ async def add_new_code(event):
                 
 @client.on(events.NewMessage(pattern='/updatecode'))
 async def handle_update_code_command(event):
-    # Gọi hàm cập nhật code từ API ngay lập tức
-    print("Received request to update codes immediately.")
+    print("Received request to update codes.")
     try:
-        new_activation_links = await client.loop.run_in_executor(None, fetch_activation_links)
+        # Gọi hàm fetch_activation_links để lấy mã mới từ API
+        new_activation_links = await fetch_activation_links()
         if new_activation_links:
-            # Cập nhật activation_links global
-            global activation_links
-            activation_links = new_activation_links
+            Config.activation_links = new_activation_links
             await event.respond("Cập nhật mã kích hoạt thành công!")
             print(f"Activation links updated at {datetime.datetime.now()}.")
-            print(activation_links)
         else:
             await event.respond("Không thể cập nhật mã kích hoạt từ API.")
-            print("Failed to fetch activation links from API.")
     except Exception as e:
         await event.respond(f"Lỗi khi cập nhật mã: {str(e)}")
-        print(f"Error updating activation links: {e}")                
+        print(f"Error updating activation links: {e}")
+           
 
 
 @client.on(events.NewMessage(pattern='/checkcode'))
 async def check_code_availability(event):
     # Đếm số lượng mã theo từng thời hạn sử dụng
+    activation_links = Config.activation_links
+
     duration_counts = {}
     for code_info in activation_links.values():
         duration = code_info['duration']
@@ -168,6 +129,8 @@ async def check_code_availability(event):
 
 @client.on(events.NewMessage(pattern='/kichhoat'))
 async def request_activation_link(event):
+    activation_links = Config.activation_links
+    
     check_pending_activations()
     current_time = datetime.datetime.now()
 
@@ -195,29 +158,26 @@ async def request_activation_link(event):
 
 @client.on(events.NewMessage(pattern='/code (.+)'))
 async def activate_code(event):
-    check_pending_activations()
-    code = event.pattern_match.group(1).strip()
+    code_entered = event.pattern_match.group(1).strip()
     current_time = datetime.datetime.now()
 
     # Kiểm tra xem code có trong activation_links và chưa được phân phối hoặc đã được phân phối cho sender_id hiện tại
-    if code in activation_links and (code not in distributed_links or distributed_links.get(code) == event.sender_id):
-        code_info = activation_links[code]
+    if code_entered in Config.activation_links:
+        code_info = Config.activation_links[code_entered]
+        # Thực hiện thêm bất kỳ kiểm tra nào nếu cần thiết trước khi kích hoạt mã
         duration = timedelta(days=code_info["duration"])
         new_expiry_time = users_access.get(event.sender_id, current_time) + duration
-        
+
+        # Kích hoạt mã cho người dùng và cập nhật thời gian hết hạn
         users_access[event.sender_id] = new_expiry_time
-        distributed_links[code] = event.sender_id
-        
-        # Kích hoạt mã và lấy id để xóa trên API
-        code_id = code_info['id']  # Giả sử mỗi entry có 'id'
-        
-        del activation_links[code]  # Xóa mã khỏi pool
-        
+        # Xóa mã khỏi pool và cấu trúc dữ liệu
+        del Config.activation_links[code_entered]
+
         # Xóa mã khỏi API
-        threading.Thread(target=delete_code_from_api, args=(code_id,)).start()
-        
-        print("activation_links after deletion: ", activation_links)
+        await delete_code_from_api(code_info['id'])
+
         await event.respond(f"Bạn đã kích hoạt thành công! Thời gian sử dụng mới của bạn là {new_expiry_time.strftime('%Y-%m-%d %H:%M:%S')}.")
+        print(f"Code {code_entered} has been activated and deleted from the pool.")
     else:
         await event.respond("Mã kích hoạt không hợp lệ hoặc đã được sử dụng.")
 
@@ -244,17 +204,25 @@ async def handler(event):
             await event.respond(f'Link public của bạn đã được tạo: {start_link}', buttons=[Button.url('Xem Media', start_link)])
     else:
         await event.respond("Bạn cần kích hoạt truy cập để sử dụng chức năng này.")
+        
+
 
 # Bắt đầu client
 client.start(bot_token=bot_token)
 
-# Hàm main chính để khởi động bot
+async def initial_activation_links_update():
+    Config.activation_links = await fetch_activation_links()
+
 if __name__ == '__main__':
-    # Cập nhật activation_links từ API khi bot khởi động
-    activation_links.update(fetch_activation_links())
-    
-    # Thêm hàm cập nhật định kỳ vào loop
-    client.loop.create_task(update_activation_links_periodically())
-    
-    print("Khởi chạy bot thành công!")
-    client.run_until_disconnected()
+    try:
+        client.start(bot_token)
+        print("Khởi động BOT thành công!")
+        # Gọi hàm cập nhật link kích hoạt ban đầu khi bot khởi động
+        client.loop.run_until_complete(initial_activation_links_update())
+        client.run_until_disconnected()
+    except KeyboardInterrupt:
+        print('Bot đã được ngắt kết nối an toàn.')
+        # Có thể thêm mã để làm sạch hoặc lưu trữ ở đây nếu cần
+    except Exception as e:
+        print(f'Lỗi không xác định: {e}')
+

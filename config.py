@@ -9,15 +9,14 @@ api_hash = '6ad9d81fb1c8e246de8255d7ecc449f5'
 bot_token = '7068498391:AAHumK7nbOHxdYvn7B81aysNxyy3oSWam4Y'
 your_bot_username = "sharefileTTGbot"
 channel_id = -1002001373543
+USER_ACTIVATIONS_API = "https://6626aa5f052332d553239fd6.mockapi.io/activation_links"
 
 # bot_token="6737137775:AAEGBx0Y8jlV-7QxQvAIUvwU3BOpqYifSC8"
-# your_bot_user = "@ShareFileVIPSbot"
+# your_bot_username = "ShareFileVIPSbot"
 # channel_id = -1002132651013
+# USER_ACTIVATIONS_API = "https://6624929304457d4aaf9c7cd6.mockapi.io/activation_links"
 
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
-
-USER_ACTIVATIONS_API = "https://6624929304457d4aaf9c7cd6.mockapi.io/activation_links"
-
 
 # Theo dõi các mã đã được gửi để kích hoạt và thời gian hết hạn
 pending_activations = {}
@@ -28,6 +27,17 @@ user_link_map = {}
 # Đây là nơi chúng ta sẽ lưu trữ các link đã được phân phối
 distributed_links = {}
 
-LINK_DURATION = timedelta(minutes=6) #thời gian hết hạn link
+LINK_DURATION = timedelta(minutes=0.5) #thời gian hết hạn link theo phút
+UPDATE_CODE_DURATION = (10)  #thời tự động cập nhật code từ API theo giây
 
-activation_links = {}
+class Config:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(Config, cls).__new__(cls)
+            # Đặt tất cả các biến của bạn ở đây
+            cls._instance.activation_links = {}
+            
+        return cls._instance
+

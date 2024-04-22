@@ -25,14 +25,158 @@ thì sẽ thêm toàn bộ code này vào API
 
 
 [
-    {"Code": "1", "Link": "https://tiengioi.vip/1", "duration": 5, "id": "1"},
-    {"Code": "2", "Link": "https://tiengioi.vip/2", "duration": 5, "id": "2"},
-    {"Code": "3", "Link": "https://tiengioi.vip/3", "duration": 7, "id": "3"},
-    {"Code": "4", "Link": "https://tiengioi.vip/4", "duration": 7, "id": "4"},
-    {"Code": "5", "Link": "https://tiengioi.vip/5", "duration": 5, "id": "5"},
-    {"Code": "6", "Link": "https://tiengioi.vip/6", "duration": 3, "id": "6"},
-    {"Code": "7", "Link": "https://tiengioi.vip/7", "duration": 7, "id": "7"},
-    {"Code": "8", "Link": "https://tiengioi.vip/8", "duration": 3, "id": "8"},
-    {"Code": "9", "Link": "https://tiengioi.vip/9", "duration": 3, "id": "9"},
-    {"Code": "10", "Link": "https://tiengioi.vip/10", "duration": 7, "id": "10"}
+  {
+    "Code": "1",
+    "Link": "https://tiengioi.vip/1",
+    "LinkBackup": "LinkBackup 1",
+    "duration": 10,
+    "id": "1"
+  },
+  {
+    "Code": "2",
+    "Link": "https://tiengioi.vip/2",
+    "LinkBackup": "LinkBackup 2",
+    "duration": 5,
+    "id": "2"
+  },
+  {
+    "Code": "3",
+    "Link": "https://tiengioi.vip/3",
+    "LinkBackup": "LinkBackup 3",
+    "duration": 3,
+    "id": "3"
+  },
+  {
+    "Code": "4",
+    "Link": "https://tiengioi.vip/4",
+    "LinkBackup": "LinkBackup 4",
+    "duration": 10,
+    "id": "4"
+  },
+  {
+    "Code": "5",
+    "Link": "https://tiengioi.vip/5",
+    "LinkBackup": "LinkBackup 5",
+    "duration": 8,
+    "id": "5"
+  },
+  {
+    "Code": "6",
+    "Link": "https://tiengioi.vip/6",
+    "LinkBackup": "LinkBackup 6",
+    "duration": 3,
+    "id": "6"
+  },
+  {
+    "Code": "7",
+    "Link": "https://tiengioi.vip/7",
+    "LinkBackup": "LinkBackup 7",
+    "duration": 5,
+    "id": "7"
+  },
+  {
+    "Code": "8",
+    "Link": "https://tiengioi.vip/8",
+    "LinkBackup": "LinkBackup 8",
+    "duration": 2,
+    "id": "8"
+  },
+  {
+    "Code": "9",
+    "Link": "https://tiengioi.vip/9",
+    "LinkBackup": "LinkBackup 9",
+    "duration": 6,
+    "id": "9"
+  },
+  {
+    "Code": "10",
+    "Link": "https://tiengioi.vip/10",
+    "LinkBackup": "LinkBackup 10",
+    "duration": 2,
+    "id": "10"
+  },
+  {
+    "Code": "11",
+    "Link": "https://tiengioi.vip/11",
+    "LinkBackup": "LinkBackup 11",
+    "duration": 8,
+    "id": "11"
+  },
+  {
+    "Code": "12",
+    "Link": "https://tiengioi.vip/12",
+    "LinkBackup": "LinkBackup 12",
+    "duration": 3,
+    "id": "12"
+  },
+  {
+    "Code": "13",
+    "Link": "https://tiengioi.vip/13",
+    "LinkBackup": "LinkBackup 13",
+    "duration": 6,
+    "id": "13"
+  },
+  {
+    "Code": "14",
+    "Link": "https://tiengioi.vip/14",
+    "LinkBackup": "LinkBackup 14",
+    "duration": 5,
+    "id": "14"
+  },
+  {
+    "Code": "15",
+    "Link": "https://tiengioi.vip/15",
+    "LinkBackup": "LinkBackup 15",
+    "duration": 8,
+    "id": "15"
+  },
+  {
+    "Code": "16",
+    "Link": "https://tiengioi.vip/16",
+    "LinkBackup": "LinkBackup 16",
+    "duration": 6,
+    "id": "16"
+  },
+  {
+    "Code": "17",
+    "Link": "https://tiengioi.vip/17",
+    "LinkBackup": "LinkBackup 17",
+    "duration": 2,
+    "id": "17"
+  },
+  {
+    "Code": "18",
+    "Link": "https://tiengioi.vip/18",
+    "LinkBackup": "LinkBackup 18",
+    "duration": 5,
+    "id": "18"
+  },
+  {
+    "Code": "19",
+    "Link": "https://tiengioi.vip/19",
+    "LinkBackup": "LinkBackup 19",
+    "duration": 3,
+    "id": "19"
+  },
+  {
+    "Code": "20",
+    "Link": "https://tiengioi.vip/20",
+    "LinkBackup": "LinkBackup 20",
+    "duration": 10,
+    "id": "20"
+  }
 ]
+
+
+
+1 https://tiengioi.vip/1 5
+2 https://tiengioi.vip/2 5
+3 https://tiengioi.vip/3 7
+4 https://tiengioi.vip/4 7
+5 https://tiengioi.vip/5 5
+6 https://tiengioi.vip/6 3
+7 https://tiengioi.vip/7 7
+8 https://tiengioi.vip/8 3
+9 https://tiengioi.vip/9 3
+10 https://tiengioi.vip/10 7
+

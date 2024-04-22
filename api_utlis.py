@@ -1,6 +1,6 @@
 # api_utlis.py 
 
-import requests
+import requests, asyncio, aiohttp
 from config import USER_ACTIVATIONS_API
 
 # Hàm lấy activation_links từ API
@@ -12,11 +12,23 @@ def load_activation_links(api_url):
         print("Failed to load activation links from API")
         return {}
 
-def delete_code_from_api(code_id):
-    try:
-        response = requests.delete(f"{USER_ACTIVATIONS_API}/{code_id}")
-        response.raise_for_status()
-        print(f"Code with id {code_id} deleted successfully from API.")
-    except requests.RequestException as e:
-        print(f"Failed to delete code with id {code_id} from API: {e}")
+async def delete_code_from_api(code_id):
+    async with aiohttp.ClientSession() as session:
+        async with session.delete(f"{USER_ACTIVATIONS_API}/{code_id}") as response:
+            if response.status == 200:
+                print(f"Code {code_id} deleted successfully.")
+            else:
+                error_text = await response.text()
+                print(f"Failed to delete code {code_id}: {error_text}")
+
+# Hàm đồng bộ để lấy activation_links từ API
+async def fetch_activation_links():
+    async with aiohttp.ClientSession() as session:
+        async with session.get(USER_ACTIVATIONS_API) as response:
+            if response.status == 200:
+                data = await response.json()
+                return {item['Code']: {'url': item['Link'], 'duration': item['duration'], 'id': item['id']} for item in data}
+            return {}
         
+async def update_activation_links():
+    return await fetch_activation_links()
