@@ -36,8 +36,18 @@ async def fetch_activation_links():
         async with session.get(USER_ACTIVATIONS_API) as response:
             if response.status == 200:
                 data = await response.json()
-                return {item['Code']: {'url': item['Link'], 'duration': item['duration'], 'id': item['id']} for item in data}
-            return {}
+                return {
+                    item['Code']: {
+                        'url': item['Link'],
+                        'backup_url': item.get('LinkBackup'),  # Lấy thêm backup link
+                        'duration': item['duration'],
+                        'id': item['id']
+                    }
+                    for item in data
+                }
+            else:
+                print(f"Failed to load activation links from API, status code {response.status}")
+                return {}
         
 async def update_activation_links():
     return await fetch_activation_links()

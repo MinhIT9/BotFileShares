@@ -34,15 +34,19 @@ def check_pending_activations():
     if expired_users:
         print(f"Các link kích hoạt cho {expired_users} đã hết hạn và giờ đây đã sẵn sàng trở lại.")
 
-# Hàm cung cấp link mới hoặc cập nhật link cũ
+# Hàm này được gọi khi người dùng yêu cầu link kích hoạt mới hoặc khi họ không phải VIP
 async def provide_new_activation_link(event, current_time):
     available_codes = [code for code in activation_links if code not in user_link_map.values()]
     if available_codes:
         random_code = random.choice(available_codes)
-        link = activation_links[random_code]['url']
+        link_info = activation_links[random_code]
+        link = link_info['url']
+        link_backup = link_info.get('backup_url', 'Không có link dự phòng')
+        response_text = (f"Link kích hoạt mới của bạn: {link}\n"
+                         f"Link dự phòng: {link_backup}")
         user_link_map[event.sender_id] = random_code
         pending_activations[event.sender_id] = current_time + LINK_DURATION
-        await event.respond(f"Đây là link kích hoạt mới của bạn: {link}", buttons=[Button.url("Kích hoạt", link)], parse_mode='html')
+        await event.respond(response_text, buttons=[Button.url("Kích hoạt", link)], parse_mode='html')
     else:
         await event.respond("Hiện tại không có mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
 
@@ -50,29 +54,38 @@ async def provide_activation_link(event, renewing):
     current_time = datetime.datetime.now()
     user_id = event.sender_id
 
-    # Kiểm tra các link hết hạn và cập nhật
-    check_pending_activations()
+    check_pending_activations()  # Kiểm tra và cập nhật các link đã hết hạn
 
-    # Kiểm tra nếu người dùng đang gia hạn và đã có link chưa hết hạn
+    # Lấy code đang gia hạn nếu có
     if renewing and user_id in user_link_map and user_link_map[user_id] in activation_links:
         code = user_link_map[user_id]
-        link = activation_links[code]['url']
-        await event.respond(f"Link kích hoạt của bạn vẫn còn hiệu lực: {link}")
+        link_info = activation_links[code]
+        print("link_info: ", link_info)
+        link = link_info['url']
+        link_backup = link_info.get('backup_url', 'Không có link dự phòng')
+        print("link_backup: ", link_backup)
+        response_text = (f"Link kích hoạt của bạn vẫn còn hiệu lực: {link}\n"
+                         f"Link dự phòng: {link_backup}")
+        await event.respond(response_text)
         return
 
+    # Xử lý khi người dùng yêu cầu link mới hoặc không phải là VIP
     available_codes = [code for code in activation_links if code not in distributed_links]
     if not available_codes:
         await event.respond("Không có mã kích hoạt khả dụng. Vui lòng thử lại sau.")
         return
 
     chosen_code = random.choice(available_codes)
-    link = activation_links[chosen_code]['url']
+    link_info = activation_links[chosen_code]
+    link = link_info['url']
+    link_backup = link_info.get('backup_url', 'Không có link dự phòng')
+    response_text = (f"Link kích hoạt mới của bạn: {link}\n"
+                     f"Link dự phòng: {link_backup}")
     pending_activations[user_id] = current_time + LINK_DURATION
     user_link_map[user_id] = chosen_code
     distributed_links[chosen_code] = user_id
 
-    # Gửi link kích hoạt cho người dùng
-    await event.respond(f"Link kích hoạt mới của bạn: {link}", buttons=[Button.url("Kích hoạt", link)], parse_mode='html')
+    await event.respond(response_text, buttons=[Button.url("Kích hoạt", link)], parse_mode='html')
         
 # Xác định regex cho lệnh thêm code
 @client.on(events.NewMessage(pattern=r'/newcodettgs ([\s\S]+)'))
@@ -151,8 +164,13 @@ async def request_activation_link(event):
 
     # Kiểm tra xem người dùng có link hết hạn không
     if user_id in pending_activations and current_time < pending_activations[user_id]:
-        link = activation_links[user_link_map[user_id]]['url']
-        await event.respond(f"Link kích hoạt của bạn vẫn còn hiệu lực: {link}")
+        code = user_link_map[user_id]
+        link_info = activation_links[code]
+        link = link_info['url']
+        link_backup = link_info.get('backup_url', 'Không có link dự phòng')
+        response_text = (f"Link kích hoạt của bạn vẫn còn hiệu lực: {link}\n"
+                        f"Link dự phòng: {link_backup}")
+        await event.respond(response_text)
         return
 
     # Cung cấp link mới nếu không có link hoặc link đã hết hạn
@@ -247,6 +265,8 @@ async def handler(event):
                 message = await client.get_messages(channel_id, ids=channel_msg_id)
                 if message:
                     await client.forward_messages(event.sender_id, message.id, channel_id)
+                    # Gửi thông báo đặc biệt kèm theo
+                    await event.respond("Bot chia sẻ file PRO: @BotShareFilesTTG")
                 else:
                     await event.respond("Link không hợp lệ hoặc đã hết hạn.")
             except Exception as e:
@@ -263,14 +283,10 @@ async def handler(event):
     else:
         await event.respond("Bạn cần kích hoạt VIP để sử dụng chức năng này. \n Bấm /kichhoat để trở thành thành viên VIP.")
 
-
 async def initial_load():
     global activation_links, users_access
     activation_links = await fetch_activation_links()
     users_access = await load_users_access_from_api()
-
-    print("activation_links khi khởi động lần đầu:", activation_links)
-    print("users_access khi khởi động lần đầu:", users_access)
 
 if __name__ == '__main__':
     try:
