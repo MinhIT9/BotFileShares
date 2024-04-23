@@ -111,20 +111,42 @@ async def add_new_code(event):
     codes_data = event.pattern_match.group(1)
     codes_lines = codes_data.strip().split('\n')
     
-    async with aiohttp.ClientSession() as session:
-        for line in codes_lines:
-            parts = line.strip().split()
-            if len(parts) == 3:
-                payload = {'Code': parts[0], 'Link': parts[1], 'duration': int(parts[2])}
+    for line in codes_lines:
+        parts = line.strip().split()
+        if len(parts) == 4:
+            # Tạo payload cho API
+            code, link, backup_link, duration = parts
+            payload = {
+                'Code': code,
+                'Link': link,
+                'LinkBackup': backup_link,
+                'duration': int(duration)
+            }
+            
+            # Thêm vào pool tạm thời trước
+            activation_links[code] = {
+                'url': link,
+                'backup_url': backup_link,
+                'duration': int(duration)
+            }
+            
+            # Cập nhật API
+            async with aiohttp.ClientSession() as session:
                 try:
                     async with session.post(USER_ACTIVATIONS_API, json=payload) as response:
                         if response.status == 201:
                             await event.respond(f"Thêm mã thành công: {payload['Code']}")
                         else:
                             error_message = await response.text()
+                            # Nếu thêm vào API không thành công, xóa khỏi pool tạm thời
+                            activation_links.pop(code, None)
                             await event.respond(f"Không thể thêm mã {payload['Code']}: {error_message}")
                 except aiohttp.ClientError as e:
+                    # Nếu thêm vào API không thành công, xóa khỏi pool tạm thời
+                    activation_links.pop(code, None)
                     await event.respond(f"Lỗi kết nối API: {str(e)}")
+        else:
+            await event.respond("Định dạng dữ liệu không đúng. Cần có 4 phần: code, link chính, link dự phòng và thời hạn.")
                 
 @client.on(events.NewMessage(pattern='/updatecode'))
 async def handle_update_code_command(event):
