@@ -29,9 +29,10 @@ ok, bây giờ tôi có mô tả sau, hãy giúp tôi
 
 
 Khi user lần đầu dùng /kichhoat sẽ random nhận 1 link lấy code từ pool, khi họ dùng lại /kichhoat trong thời hạn LINK_DURATION thì sẽ vẫn nhận lại link đó. nếu sau thời gian đó mà code vẫn chưa được nhập thì sẽ trả link và code về lại bể pool và user dùng /kichhoat sẽ lấy random 1 mã khác
-Khi user dùng /code code mà thành công thì sẽ kích hoạt VIP và thông báo user đã kích hoạt VIP thành công và hạn sử dụng đến giờ:phút ngày tháng năm.
-- Tuy nhiên khi user đã là VIP kiểm tra mà dùng lệnh /kichhoat thì sẽ thông báo thời gian hết hạn giờ:phút ngày tháng năm nếu muốn tăng thêm thời gian sử dụng BOT thì dùng /kichhoat để lấy random lấy 1 link khác giống như /kichhoat ban đầu, logic cũng tương tự
+Khi user dùng /code code mà thành công thì sẽ kích hoạt VIP và thông báo user đã kích hoạt VIP thành công và hạn sử dụng đến giờ:phút ngày tháng năm Nếu muốn tăng thêm thời hạn VIP thì dùng /giahan để lấy mã gia hạn.
+- Tuy nhiên khi user đã là VIP kiểm tra mà dùng lệnh /kichhoat thì sẽ thông báo thời gian hết hạn giờ:phút ngày tháng năm nếu muốn tăng thêm thời gian sử dụng BOT thì dùng /giahan để lấy random lấy 1 link khác giống như logic của /kichhoat, logic cũng tương tự
 Nếu user chỉ dùng /code thì thông báo vui lòng nhập đúng cú pháp. Ví dụ  <b>/code 12345</b> để kích hoạt
+- Khi user hết hạn VIP thì chức năng như cũ vào thêm 1 thông báo. Bạn đã hết thời hạn sử dụng VIP, bấm /kichhoat để kích hoạt lại nhé!
 
 yêu cầu chức năng:
 - hiện tại các users_access trên api đều rỗng, tôi muốn khi dùng /code code thành công thì mới bắt đầu thêm vào. khi user hết thời gian VIP sẽ tự động xoá khỏi users_access trong pool và cũng xoá khỏi api
