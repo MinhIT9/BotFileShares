@@ -1,0 +1,143 @@
+[
+    {
+      "Code": "1",
+      "Link": "https://tiengioi.vip/1",
+      "LinkBackup": "https://tiengioi.vip/1-backup",
+      "duration": 3,
+      "id": "1"
+    },
+    {
+      "Code": "2",
+      "Link": "https://tiengioi.vip/2",
+      "LinkBackup": "https://tiengioi.vip/2-backup",
+      "duration": 5,
+      "id": "2"
+    },
+    {
+      "Code": "3",
+      "Link": "https://tiengioi.vip/3",
+      "LinkBackup": "https://tiengioi.vip/3-backup",
+      "duration": 7,
+      "id": "3"
+    },
+    {
+      "Code": "4",
+      "Link": "https://tiengioi.vip/4",
+      "LinkBackup": "https://tiengioi.vip/4-backup",
+      "duration": 3,
+      "id": "4"
+    },
+    {
+      "Code": "5",
+      "Link": "https://tiengioi.vip/5",
+      "LinkBackup": "https://tiengioi.vip/5-backup",
+      "duration": 5,
+      "id": "5"
+    },
+    {
+      "Code": "6",
+      "Link": "https://tiengioi.vip/6",
+      "LinkBackup": "https://tiengioi.vip/6-backup",
+      "duration": 7,
+      "id": "6"
+    },
+    {
+      "Code": "7",
+      "Link": "https://tiengioi.vip/7",
+      "LinkBackup": "https://tiengioi.vip/7-backup",
+      "duration": 3,
+      "id": "7"
+    },
+    {
+      "Code": "8",
+      "Link": "https://tiengioi.vip/8",
+      "LinkBackup": "https://tiengioi.vip/8-backup",
+      "duration": 5,
+      "id": "8"
+    },
+    {
+      "Code": "9",
+      "Link": "https://tiengioi.vip/9",
+      "LinkBackup": "https://tiengioi.vip/9-backup",
+      "duration": 7,
+      "id": "9"
+    },
+    {
+      "Code": "10",
+      "Link": "https://tiengioi.vip/10",
+      "LinkBackup": "https://tiengioi.vip/10-backup",
+      "duration": 3,
+      "id": "10"
+    },
+    {
+      "Code": "11",
+      "Link": "https://tiengioi.vip/11",
+      "LinkBackup": "https://tiengioi.vip/11-backup",
+      "duration": 5,
+      "id": "11"
+    },
+    {
+      "Code": "12",
+      "Link": "https://tiengioi.vip/12",
+      "LinkBackup": "https://tiengioi.vip/12-backup",
+      "duration": 7,
+      "id": "12"
+    },
+    {
+      "Code": "13",
+      "Link": "https://tiengioi.vip/13",
+      "LinkBackup": "https://tiengioi.vip/13-backup",
+      "duration": 3,
+      "id": "13"
+    },
+    {
+      "Code": "14",
+      "Link": "https://tiengioi.vip/14",
+      "LinkBackup": "https://tiengioi.vip/14-backup",
+      "duration": 5,
+      "id": "14"
+    },
+    {
+      "Code": "15",
+      "Link": "https://tiengioi.vip/15",
+      "LinkBackup": "https://tiengioi.vip/15-backup",
+      "duration": 7,
+      "id": "15"
+    },
+    {
+      "Code": "16",
+      "Link": "https://tiengioi.vip/16",
+      "LinkBackup": "https://tiengioi.vip/16-backup",
+      "duration": 3,
+      "id": "16"
+    },
+    {
+      "Code": "17",
+      "Link": "https://tiengioi.vip/17",
+      "LinkBackup": "https://tiengioi.vip/17-backup",
+      "duration": 5,
+      "id": "17"
+    },
+    {
+      "Code": "18",
+      "Link": "https://tiengioi.vip/18",
+      "LinkBackup": "https://tiengioi.vip/18-backup",
+      "duration": 7,
+      "id": "18"
+    },
+    {
+      "Code": "19",
+      "Link": "https://tiengioi.vip/19",
+      "LinkBackup": "https://tiengioi.vip/19-backup",
+      "duration": 3,
+      "id": "19"
+    },
+    {
+      "Code": "20",
+      "Link": "https://tiengioi.vip/20",
+      "LinkBackup": "https://tiengioi.vip/20-backup",
+      "duration": 5,
+      "id": "20"
+    }
+  ]
+  
