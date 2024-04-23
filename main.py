@@ -4,7 +4,7 @@ from datetime import timedelta
 import datetime, random, asyncio, threading, aiohttp, re
 from config import Config  # Import class Config
 from telethon import events, Button
-from api_utlis import delete_code_from_api, fetch_activation_links, save_single_user_access_to_api, load_users_access_from_api, load_activation_links
+from api_utlis import delete_code_from_api, fetch_activation_links, save_single_user_access_to_api, load_users_access_from_api, get_or_create_users_access_object
 from config import (your_bot_username, channel_id, pending_activations, 
                     user_link_map, distributed_links, LINK_DURATION,
                     client, bot_token, USER_ACTIVATIONS_API)
@@ -12,7 +12,7 @@ from config import (your_bot_username, channel_id, pending_activations,
 # Gán biến mới cho users_access, activation_links 
 config_instance = Config()
 users_access = config_instance.users_access 
-activation_links = config_instance.users_access
+activation_links = config_instance.activation_links
 
 # Đây là hàm kiểm tra các kích hoạt đang chờ và nằm ở cấp độ module
 def check_pending_activations():
@@ -83,15 +83,12 @@ async def handle_update_code_command(event):
         await event.respond(f"Lỗi khi cập nhật mã: {str(e)}")
         print(f"Lỗi cập nhật mã kích hoạt: {e}")
           
-
-
 @client.on(events.NewMessage(pattern='/checkcode'))
 async def check_code_availability(event):
+    global activation_links  # Khai báo sử dụng biến toàn cục
     # Đếm số lượng mã theo từng thời hạn sử dụng
-    activation_links = activation_links
-
     duration_counts = {}
-    for code_info in activation_links.values():
+    for code_info in activation_links.values():  # Không cần gán lại biến activation_links ở đây
         duration = code_info['duration']
         if duration in duration_counts:
             duration_counts[duration] += 1
@@ -112,7 +109,6 @@ async def check_code_availability(event):
     else:
         await event.respond("Hiện không có mã kích hoạt nào khả dụng.")
 
-
 @client.on(events.NewMessage(pattern=r'/kichhoat'))
 async def request_activation_link(event):
     user_id = event.sender_id
@@ -120,14 +116,10 @@ async def request_activation_link(event):
 
     # Kiểm tra xem người dùng đã nhận link chưa và link đó có còn hiệu lực không
     if user_id in pending_activations:
-        if current_time < pending_activations[user_id]:
-            # Nếu link vẫn còn hiệu lực, thông báo cho người dùng
-            code = user_link_map[user_id]
-            link = activation_links[code]['url']
-            await event.respond(
-                f"Bạn đã yêu cầu kích hoạt trước đó và link vẫn còn hiệu lực. Vui lòng truy cập link sau để lấy mã kích hoạt của bạn: {link}",
-                buttons=[Button.url("Lấy mã kích hoạt", link)], parse_mode='html'
-            )
+        # Kiểm tra nếu người dùng đã là VIP và gửi thông báo hạn sử dụng
+        if user_id in users_access and current_time < users_access[user_id]:
+            expiry_str = users_access[user_id].strftime('%H:%M %d-%m-%Y')
+            await event.respond(f"Bạn đã là VIP và hạn sử dụng đến: {expiry_str}. Sử dụng /kichhoat để tăng thời gian sử dụng.")
         else:
             # Link đã hết hạn, cung cấp link mới
             await provide_new_activation_link(event, current_time)
@@ -140,26 +132,41 @@ async def activate_code(event):
     user_id = event.sender_id
     code_entered = event.pattern_match.group(1).strip()
     current_time = datetime.datetime.now()
+    
+     # Đảm bảo rằng activation_links là một dictionary toàn cục
+    global activation_links
+    global users_access
 
     if code_entered in activation_links and (code_entered not in distributed_links or distributed_links.get(code_entered) == user_id):
         code_info = activation_links[code_entered]
         duration = timedelta(days=code_info["duration"])
-        new_expiry_time = users_access.get(user_id, current_time) + duration
-
+        # Nếu không tìm thấy user_id trong users_access, sử dụng current_time làm giá trị mặc định
+        expiry_time = users_access.get(user_id, current_time)
+        new_expiry_time = expiry_time + duration
+        
+        # Cập nhật users_access trong instance và pool
         users_access[user_id] = new_expiry_time
         distributed_links[code_entered] = user_id
+
+        # Lấy hoặc tạo đối tượng users_access để lưu trữ thông tin
+        access_object = await get_or_create_users_access_object()
+        if access_object is None:
+            await event.respond("Không thể cập nhật hoặc tạo mới thông tin truy cập.")
+            return
+
+        access_object["users_access"][str(user_id)] = new_expiry_time.isoformat()
+        # Lưu trữ thông tin sau khi kích hoạt thành công
+        await save_single_user_access_to_api(access_object)  # Sửa đổi tại đây
 
         # Xóa mã khỏi API và pool
         del activation_links[code_entered]
         await delete_code_from_api(code_info['id'])
 
-        expiry = new_expiry_time.strftime('%H:%M %d-%m-%Y')
-        await event.respond(f"Bạn đã kích hoạt thành công VIP. Hạn sử dụng đến: {expiry}.")
-        # Lưu trữ thông tin sau khi kích hoạt thành công
-        await save_single_user_access_to_api(user_id, new_expiry_time)
+        # Sử dụng new_expiry_time để tạo thông báo
+        expiry_str = new_expiry_time.strftime('%H:%M %d-%m-%Y')
+        await event.respond(f"Bạn đã kích hoạt thành công VIP. Hạn sử dụng đến: {expiry_str}.")
     else:
         await event.respond("Mã kích hoạt không hợp lệ hoặc đã được sử dụng. Vui lòng nhập đúng cú pháp: <b>/code 12345</b>.", parse_mode='html')
-
 
 @client.on(events.NewMessage(pattern='/start'))
 async def send_welcome(event):
@@ -192,14 +199,16 @@ if __name__ == '__main__':
         client.start(bot_token=bot_token)
         print("Khởi động BOT thành công!")
 
-         # Lấy lại activation_links và users_access từ API khi bot khởi động
         async def initial_load():
-            await load_activation_links()
-            await load_users_access_from_api()
+            global activation_links, users_access  # Khai báo sử dụng biến toàn cục cho cả hai
+            activation_links = await fetch_activation_links()  # Không cần gán lại nếu bạn muốn giữ giá trị toàn cục
+            users_access = await load_users_access_from_api()  # Sửa đổi nếu bạn muốn giữ giá trị toàn cục
+
+            print("activation_links khi khởi động lần đầu:", activation_links)
+            print("users_access khi khởi động lần đầu:", users_access)
 
         client.loop.run_until_complete(initial_load())
-        
+
         client.run_until_disconnected()
     except Exception as e:
         print(f'Lỗi không xác định: {e}')
-
