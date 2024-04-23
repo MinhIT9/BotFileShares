@@ -36,60 +36,43 @@ def check_pending_activations():
 
 # Hàm cung cấp link mới hoặc cập nhật link cũ
 async def provide_new_activation_link(event, current_time):
+    available_codes = [code for code in activation_links if code not in user_link_map.values()]
+    if available_codes:
+        random_code = random.choice(available_codes)
+        link = activation_links[random_code]['url']
+        user_link_map[event.sender_id] = random_code
+        pending_activations[event.sender_id] = current_time + LINK_DURATION
+        await event.respond(f"Đây là link kích hoạt mới của bạn: {link}", buttons=[Button.url("Kích hoạt", link)], parse_mode='html')
+    else:
+        await event.respond("Hiện tại không có mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
+
+async def provide_activation_link(event, renewing):
+    current_time = datetime.datetime.now()
     user_id = event.sender_id
 
-    # Tìm link chưa được sử dụng và không nằm trong danh sách chờ
-    available_codes = [
-        code for code, details in activation_links.items()
-        if current_time < details.get('expiry_time', current_time)
-        and code not in user_link_map.values()
-    ]
+    # Kiểm tra các link hết hạn và cập nhật
+    check_pending_activations()
 
-    if available_codes:
-        # Chọn ngẫu nhiên một code từ danh sách
-        chosen_code = random.choice(available_codes)
-        link_details = activation_links[chosen_code]
-        user_link_map[user_id] = chosen_code
-        pending_activations[user_id] = current_time + LINK_DURATION
-        await event.respond(
-            f"Đây là link kích hoạt mới của bạn: {link_details['url']}",
-            buttons=[Button.url("Kích hoạt", link_details['url'])],
-            parse_mode='html'
-        )
-    else:
-        # Nếu không có link khả dụng, thông báo cho người dùng
-        await event.respond("Hiện tại không có mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
-
-async def provide_activation_link(event, current_time, user_id, renewing=False):
-    # Tìm link chưa được sử dụng
-    available_codes = [
-        code for code, details in activation_links.items()
-        if code not in user_link_map.values()
-    ]
-    
-    if not available_codes:
-        await event.respond("Hiện tại không có mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
+    # Kiểm tra nếu người dùng đang gia hạn và đã có link chưa hết hạn
+    if renewing and user_id in user_link_map and user_link_map[user_id] in activation_links:
+        code = user_link_map[user_id]
+        link = activation_links[code]['url']
+        await event.respond(f"Link kích hoạt của bạn vẫn còn hiệu lực: {link}")
         return
-    
-    random_code = random.choice(available_codes)
-    link = activation_links[random_code]['url']
-    
-    if not renewing or (renewing and user_id not in pending_activations):
-        # Đặt hoặc đặt lại thời gian chờ cho link
-        pending_activations[user_id] = current_time + LINK_DURATION
-        user_link_map[user_id] = random_code
-    
-    # Gửi link kích hoạt
-    await event.respond(
-        f"Đây là link kích hoạt mới của bạn: {link}",
-        buttons=[Button.url("Kích hoạt", link)],
-        parse_mode='html'
-    )
 
-    # Nếu người dùng đang gia hạn, cập nhật thời gian hết hạn trong users_access
-    if renewing and user_id in users_access:
-        new_expiry_time = max(current_time, users_access[user_id]) + LINK_DURATION
-        users_access[user_id] = new_expiry_time      
+    available_codes = [code for code in activation_links if code not in distributed_links]
+    if not available_codes:
+        await event.respond("Không có mã kích hoạt khả dụng. Vui lòng thử lại sau.")
+        return
+
+    chosen_code = random.choice(available_codes)
+    link = activation_links[chosen_code]['url']
+    pending_activations[user_id] = current_time + LINK_DURATION
+    user_link_map[user_id] = chosen_code
+    distributed_links[chosen_code] = user_id
+
+    # Gửi link kích hoạt cho người dùng
+    await event.respond(f"Link kích hoạt mới của bạn: {link}", buttons=[Button.url("Kích hoạt", link)], parse_mode='html')
         
 # Xác định regex cho lệnh thêm code
 @client.on(events.NewMessage(pattern=r'/newcodettgs ([\s\S]+)'))
@@ -157,28 +140,36 @@ async def check_code_availability(event):
 async def request_activation_link(event):
     user_id = event.sender_id
     current_time = datetime.datetime.now()
-    
+
     # Kiểm tra xem người dùng đã là VIP và thông báo hạn sử dụng còn lại
     if user_id in users_access and current_time < users_access[user_id]:
         expiry_str = users_access[user_id].strftime('%H:%M %d-%m-%Y')
         await event.respond(
             f"Bạn đã là VIP và hạn sử dụng đến: {expiry_str}. Sử dụng /giahan để tăng thời gian sử dụng VIP."
         )
-    else:
-        # Cung cấp link mới cho người dùng chưa là VIP
-        await provide_new_activation_link(event, current_time, user_id)
+        return
+
+    # Kiểm tra xem người dùng có link hết hạn không
+    if user_id in pending_activations and current_time < pending_activations[user_id]:
+        link = activation_links[user_link_map[user_id]]['url']
+        await event.respond(f"Link kích hoạt của bạn vẫn còn hiệu lực: {link}")
+        return
+
+    # Cung cấp link mới nếu không có link hoặc link đã hết hạn
+    await provide_activation_link(event, renewing=False)
         
 # Hàm này sẽ được gọi khi user đã là VIP và muốn gia hạn sử dụng
 @client.on(events.NewMessage(pattern='/giahan'))
 async def renew_vip(event):
     user_id = event.sender_id
     current_time = datetime.datetime.now()
-    # Kiểm tra nếu người dùng đã là VIP
-    if user_id in users_access:
-        # Gọi hàm để cung cấp link mới cho việc gia hạn
-        await provide_activation_link(event, current_time, user_id, renewing=True)
+
+    # Kiểm tra xem người dùng đã là VIP chưa và cung cấp tùy chọn gia hạn
+    if user_id in users_access and current_time < users_access[user_id]:
+        await provide_activation_link(event, renewing=True)
     else:
-        await event.respond("Bạn hiện không phải là VIP. Sử dụng /kichhoat để trở thành VIP.")
+        await event.respond("Chức năng này chỉ dành cho VIP. Sử dụng /kichhoat để trở thành VIP.")
+
         
 @client.on(events.NewMessage(pattern=r'/code (\d+)'))
 async def activate_code(event):
