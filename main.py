@@ -43,14 +43,19 @@ async def provide_activation_link(event, renewing=False):
 
     if renewing and user_id in user_link_map:
         code = user_link_map[user_id]
+        if code in activation_links:  # Thêm kiểm tra này để đảm bảo code còn tồn tại
+            link_info = activation_links[code]
+        else:
+            await event.respond("Mã kích hoạt đã được sử dụng hoặc không tồn tại.")
+            return
     else:
         available_codes = [code for code, info in activation_links.items() if code not in user_link_map.values()]
         if not available_codes:
             await event.respond("Hiện tại không có mã kích hoạt nào khả dụng. Vui lòng thử lại sau.")
             return
         code = random.choice(available_codes)
+        link_info = activation_links[code]
 
-    link_info = activation_links[code]
     link = link_info['url']
     link_backup = link_info.get('backup_url', 'Không có link dự phòng')
     response_text = f"Link kích hoạt của bạn: {link}\nLink dự phòng: {link_backup}"
@@ -67,15 +72,22 @@ async def provide_activation_link(event, renewing=False):
     if user_id in pending_activations:
         await handle_expired_activation(user_id, code)
 
-async def handle_expired_activation(user_id, code):
-    # Trả mã vào pool nếu người dùng không kích hoạt
-    if user_id in pending_activations:
-        print(f"Mã {code} hết hạn và được trả lại vào pool.")
-        pending_activations.pop(user_id)
-        user_link_map.pop(user_id)
-        activation_links[code]['status'] = 'available'  # Giả sử mỗi code có trạng thái có sẵn hoặc được sử dụng
+async def handle_expired_activation(user_id, code, success=False):
+    if success:
+        print(f"Mã {code} đã được nhập thành công bởi người dùng {user_id}. Không trả lại vào pool.")
+        return  # Không làm gì thêm nếu mã đã được nhập thành công
 
-        
+    # Tiếp tục với logic xử lý mã hết hạn
+    if user_id in pending_activations:
+        pending_activations.pop(user_id)
+        user_link_map.pop(user_id, None)
+
+        if code in activation_links:
+            activation_links[code]['status'] = 'available'
+            print(f"Mã {code} hết hạn và được trả lại vào pool.")
+        else:
+            print(f"Không thể tìm thấy mã {code} trong activation_links để cập nhật trạng thái.")
+
 # Xác định regex cho lệnh thêm code
 @client.on(events.NewMessage(pattern=r'/newcodettgs ([\s\S]+)'))
 async def add_new_code(event):
@@ -174,54 +186,52 @@ async def request_activation_link(event):
 @client.on(events.NewMessage(pattern='/giahan'))
 async def renew_vip(event):
     user_id = event.sender_id
-    current_time = datetime.datetime.now()
-
-    # Kiểm tra xem người dùng đã là VIP chưa và cung cấp tùy chọn gia hạn
-    if user_id in users_access and current_time < users_access[user_id]:
+    if user_id in users_access:
         await provide_activation_link(event, renewing=True)
     else:
         await event.respond("Chức năng này chỉ dành cho VIP. Sử dụng /kichhoat để trở thành VIP.")
-
-        
+  
+# Hàm nhập Code kích hoạt   
 @client.on(events.NewMessage(pattern=r'/code (\d+)'))
 async def activate_code(event):
     user_id = event.sender_id
     code_entered = event.pattern_match.group(1).strip()
-    current_time = datetime.datetime.now()
-    
-     # Đảm bảo rằng activation_links là một dictionary toàn cục
-    global activation_links
-    global users_access
 
     if code_entered in activation_links and (code_entered not in distributed_links or distributed_links.get(code_entered) == user_id):
-        code_info = activation_links[code_entered]
-        duration = timedelta(days=code_info["duration"])
-        # Nếu không tìm thấy user_id trong users_access, sử dụng current_time làm giá trị mặc định
-        expiry_time = users_access.get(user_id, current_time)
+        code_info = activation_links.get(code_entered)
+        if not code_info:
+            await event.respond("Mã không tồn tại trong hệ thống.")
+            return
+        
+        distributed_links[code_entered] = user_id  # Đánh dấu mã đã được sử dụng
+
+        duration = timedelta(days=code_info.get("duration", 1))
+        expiry_time = users_access.get(user_id, datetime.datetime.now())
         new_expiry_time = expiry_time + duration
         
-        # Cập nhật users_access trong instance và pool
         users_access[user_id] = new_expiry_time
         distributed_links[code_entered] = user_id
 
-        # Lấy hoặc tạo đối tượng users_access để lưu trữ thông tin
         access_object = await get_or_create_users_access_object()
-        if access_object is None:
+        if not access_object:
             await event.respond("Không thể cập nhật hoặc tạo mới thông tin truy cập.")
             return
 
         access_object["users_access"][str(user_id)] = new_expiry_time.isoformat()
-        # Lưu trữ thông tin sau khi kích hoạt thành công
-        await save_single_user_access_to_api(access_object)  # Sửa đổi tại đây
+        await save_single_user_access_to_api(access_object)
         
-         # Sử dụng new_expiry_time để tạo thông báo
-        expiry_str = new_expiry_time.strftime('%H:%M %d-%m-%Y')
-        await event.respond(f"Bạn đã kích hoạt thành công VIP. Hạn sử dụng đến: {expiry_str}.")
+        await event.respond(f"Bạn đã kích hoạt thành công VIP. Hạn sử dụng đến: {new_expiry_time.strftime('%H:%M %d-%m-%Y')}.")
 
-        # Xóa mã khỏi API và pool
+        # Xóa mã khỏi từ điển activation_links
         del activation_links[code_entered]
         await delete_code_from_api(code_info['id'])
         
+        # Hủy bộ đếm thời gian chờ
+        if user_id in pending_activations:
+            pending_activations.pop(user_id)
+
+        # Gọi hàm handle_expired_activation với tham số mới
+        await handle_expired_activation(user_id, code_entered, success=True)
     else:
         await event.respond("Mã kích hoạt không hợp lệ hoặc đã được sử dụng. Vui lòng nhập đúng cú pháp: <b>/code 12345</b>.", parse_mode='html')
 
