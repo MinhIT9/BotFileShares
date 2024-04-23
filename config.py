@@ -27,7 +27,7 @@ user_link_map = {}
 # Đây là nơi chúng ta sẽ lưu trữ các link đã được phân phối
 distributed_links = {}
 
-LINK_DURATION = timedelta(minutes=1) #thời gian hết hạn link theo phút
+LINK_DURATION = timedelta(minutes=0.2) #thời gian hết hạn link theo phút
 
 class Config:
     _instance = None

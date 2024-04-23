@@ -224,20 +224,44 @@ async def send_welcome(event):
 
 @client.on(events.NewMessage(func=lambda e: e.is_private))
 async def handler(event):
-    # Kiểm tra nếu tin nhắn bắt đầu bằng '/' thì không xử lý trong handler này
+    user_id = event.sender_id
+    current_time = datetime.datetime.now()
+
+    # Kiểm tra nếu tin nhắn bắt đầu bằng '/' thì xử lý các lệnh đặc biệt
     if event.text.startswith('/'):
+        # Bỏ qua để xử lý lệnh trong các sự kiện khác
         return
     
-    print("users_access main: ", users_access)
-    
-    if event.sender_id in users_access and datetime.datetime.now() < users_access[event.sender_id]:
-        if event.media:
-            caption = event.message.text if event.message.text else ""
-            msg = await client.send_file(channel_id, event.media, caption=caption)
-            start_link = f'https://t.me/{your_bot_username}?start=channel_{msg.id}'
-            await event.respond(f'Link public của bạn đã được tạo: {start_link}', buttons=[Button.url('Xem Media', start_link)])
+    # Kiểm tra xem người dùng có phải VIP không
+    is_vip = user_id in users_access and current_time < users_access[user_id]
+
+    # Định dạng link mong muốn
+    expected_link_format = f'https://t.me/{your_bot_username}?start=channel_'
+
+    # Xử lý tin nhắn là link dạng mong muốn
+    if event.text.startswith(expected_link_format):
+        channel_msg_id_str = event.text[len(expected_link_format):]
+        if channel_msg_id_str.isdigit():
+            channel_msg_id = int(channel_msg_id_str)
+            try:
+                message = await client.get_messages(channel_id, ids=channel_msg_id)
+                if message:
+                    await client.forward_messages(event.sender_id, message.id, channel_id)
+                else:
+                    await event.respond("Link không hợp lệ hoặc đã hết hạn.")
+            except Exception as e:
+                await event.respond(f"Không thể truy cập nội dung tin nhắn: {str(e)}")
+        else:
+            await event.respond("Link không hợp lệ hoặc đã hết hạn.")
+    # Xử lý tin nhắn là media từ người dùng VIP
+    elif event.media and is_vip:
+        caption = event.message.text if event.message.text else ""
+        msg = await client.send_file(channel_id, event.media, caption=caption)
+        start_link = f'https://t.me/{your_bot_username}?start=channel_{msg.id}'
+        await event.respond(f'Link công khai của bạn đã được tạo: {start_link}', buttons=[Button.url('Xem Media', start_link)])
+    # Người dùng không phải VIP gửi media hoặc text không đúng định dạng link mong muốn
     else:
-        await event.respond("Bạn cần kích hoạt truy cập để sử dụng chức năng này.")
+        await event.respond("Bạn cần kích hoạt VIP để sử dụng chức năng này. \n Bấm /kichhoat để trở thành thành viên VIP.")
 
 
 async def initial_load():
