@@ -1,7 +1,7 @@
 # main.py
 
 from datetime import timedelta
-import datetime, random, asyncio, threading, aiohttp, re
+import datetime, random, asyncio, threading, aiohttp, re, uuid
 from config import Config  # Import class Config
 from telethon import events, Button
 from api_utlis import delete_code_from_api, fetch_activation_links, save_single_user_access_to_api, load_users_access_from_api, get_or_create_users_access_object, schedule_remove_expired_users_access
@@ -237,55 +237,70 @@ async def activate_code(event):
 
 @client.on(events.NewMessage(pattern='/start'))
 async def send_welcome(event):
-    check_pending_activations()
-    # Kiểm tra payload từ link /start để xác định xem có cần forward tin nhắn từ channel không
     if event.message.message.startswith('/start channel_'):
-        channel_msg_id = int(event.message.message.split('_')[-1])
-        await client.forward_messages(event.sender_id, channel_msg_id, channel_id)
-    await event.respond("❤️ BOT Share File Chúc bạn xem phim vui vẻ! \n \n <b>Copyright: @BotShareFilesTTG</b> \n \n Dùng /kichhoat để kích hoạt VIP Free.", parse_mode='html')
+        # Extract the part after '/start channel_' and convert it to an integer
+        try:
+            channel_msg_id = int(event.message.message.split('_')[-1])
+            # Forward the message from the channel to the user
+            await client.forward_messages(event.sender_id, channel_msg_id, channel_id)
+        except ValueError:
+            await event.respond("Link không hợp lệ.")
+        except Exception as e:
+            await event.respond(f"Có lỗi khi chuyển tiếp tin nhắn: {str(e)}")
+    else:
+        # Respond with a welcome message for any other /start message
+        await event.respond(
+            "❤️ BOT Share File Chúc bạn xem phim vui vẻ! \n \n "
+            "<b>Copyright: @BotShareFilesTTG</b> \n \n "
+            "Dùng /kichhoat để kích hoạt VIP Free.", parse_mode='html'
+        )
 
 @client.on(events.NewMessage(func=lambda e: e.is_private))
 async def handler(event):
+    # Check if the message starts with a command
+    if event.text.startswith('/'):
+        return  # Commands are handled in other event handlers
+    
     user_id = event.sender_id
     current_time = datetime.datetime.now()
 
-    # Kiểm tra nếu tin nhắn bắt đầu bằng '/' thì xử lý các lệnh đặc biệt
-    if event.text.startswith('/'):
-        # Bỏ qua để xử lý lệnh trong các sự kiện khác
-        return
-    
-    # Kiểm tra xem người dùng có phải VIP không
+    # Check if the user is a VIP
     is_vip = user_id in users_access and current_time < users_access[user_id]
-
-    # Định dạng link mong muốn
     expected_link_format = f'https://t.me/{your_bot_username}?start=channel_'
 
-    # Xử lý tin nhắn là link dạng mong muốn
+    # Handle messages that are expected link formats
     if event.text.startswith(expected_link_format):
         channel_msg_id_str = event.text[len(expected_link_format):]
-        if channel_msg_id_str.isdigit():
+        try:
             channel_msg_id = int(channel_msg_id_str)
-            try:
-                message = await client.get_messages(channel_id, ids=channel_msg_id)
-                if message:
-                    await client.forward_messages(event.sender_id, message.id, channel_id)
-                    # Gửi thông báo đặc biệt kèm theo
-                    await event.respond("Bot chia sẻ file PRO: @BotShareFilesTTG")
-                else:
-                    await event.respond("Link không hợp lệ hoặc đã hết hạn.")
-            except Exception as e:
-                await event.respond(f"Không thể truy cập nội dung tin nhắn: {str(e)}")
-        else:
-            await event.respond("Link không hợp lệ hoặc đã hết hạn.")
-    # Xử lý tin nhắn là media từ người dùng VIP
+            # Forward the message from the channel to the user
+            message = await client.get_messages(channel_id, ids=channel_msg_id)
+            if message:
+                await client.forward_messages(event.sender_id, message.id, channel_id)
+            else:
+                await event.respond("Link không hợp lệ hoặc đã hết hạn.")
+        except ValueError:
+            await event.respond("Link không hợp lệ.")
+        except Exception as e:
+            await event.respond(f"Có lỗi khi chuyển tiếp tin nhắn: {str(e)}")
+    # Handle media messages from VIP users
     elif event.media and is_vip:
-        caption = event.message.text if event.message.text else ""
-        msg = await client.send_file(channel_id, event.media, caption=caption)
-        start_link = f'https://t.me/{your_bot_username}?start=channel_{msg.id}'
-        await event.respond(f'Link công khai của bạn đã được tạo: {start_link}', buttons=[Button.url('Xem Media', start_link)])
-    # Người dùng không phải VIP gửi media hoặc text không đúng định dạng link mong muốn
+        # Send the media to the channel
+        msg = await client.send_file(channel_id, event.media, caption=event.text)
+        # Generate a unique start parameter using the message ID
+        start_parameter = f'channel_{msg.id}'
+        start_link = f'https://t.me/{your_bot_username}?start={start_parameter}'
+        # Respond with the public link
+        await event.respond(
+            f'Link công khai của bạn đã được tạo: {start_link}',
+            buttons=[Button.url('Xem Media', start_link)]
+        )
+    # Respond to non-VIP users or messages that do not contain media
     else:
-        await event.respond("Bạn cần kích hoạt VIP để sử dụng chức năng này. \n Bấm /kichhoat để trở thành thành viên VIP.")
+        await event.respond(
+            "Bạn cần kích hoạt VIP để sử dụng chức năng này. \n"
+            "Bấm /kichhoat để trở thành thành viên VIP."
+        )
 
 async def initial_load():
     global activation_links, users_access
