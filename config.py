@@ -33,8 +33,9 @@ class Config:
     _instance = None
 
     def __init__(self):
-        self.activation_links = {}
-        self.users_access = {}
+        self.activation_links = {}  # Lưu trữ các link kích hoạt
+        self.users_access = {}      # Lưu trữ thông tin truy cập người dùng
+        self.msg_id_mappings = {}   # Lưu trữ ánh xạ giữa UUID và message IDs
 
     def __new__(cls):
         if not cls._instance:

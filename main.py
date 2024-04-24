@@ -237,23 +237,27 @@ async def activate_code(event):
 
 @client.on(events.NewMessage(pattern='/start'))
 async def send_welcome(event):
+    # Extract channel message ID from the payload
     if event.message.message.startswith('/start channel_'):
-        # Extract the part after '/start channel_' and convert it to an integer
-        try:
-            channel_msg_id = int(event.message.message.split('_')[-1])
-            # Forward the message from the channel to the user
-            await client.forward_messages(event.sender_id, channel_msg_id, channel_id)
-        except ValueError:
-            await event.respond("Link không hợp lệ.")
-        except Exception as e:
-            await event.respond(f"Có lỗi khi chuyển tiếp tin nhắn: {str(e)}")
+        custom_msg_id = event.message.message.split('_')[-1]
+        
+        # Retrieve the actual message ID from the stored mappings
+        actual_msg_id = config_instance.msg_id_mappings.get(custom_msg_id)
+        
+        # Forward the message if the ID exists
+        if actual_msg_id:
+            await client.forward_messages(event.sender_id, actual_msg_id, channel_id)
+        else:
+            await event.respond("Link không hợp lệ hoặc đã hết hạn.")
+
+    # General welcome message for any other /start command
     else:
-        # Respond with a welcome message for any other /start message
         await event.respond(
             "❤️ BOT Share File Chúc bạn xem phim vui vẻ! \n \n "
             "<b>Copyright: @BotShareFilesTTG</b> \n \n "
             "Dùng /kichhoat để kích hoạt VIP Free.", parse_mode='html'
         )
+
 
 @client.on(events.NewMessage(func=lambda e: e.is_private))
 async def handler(event):
@@ -265,7 +269,7 @@ async def handler(event):
     current_time = datetime.datetime.now()
 
     # Check if the user is a VIP
-    is_vip = user_id in users_access and current_time < users_access[user_id]
+    is_vip = user_id in config_instance.users_access and current_time < config_instance.users_access[user_id]
     expected_link_format = f'https://t.me/{your_bot_username}?start=channel_'
 
     # Handle messages that are expected link formats
@@ -283,18 +287,27 @@ async def handler(event):
             await event.respond("Link không hợp lệ.")
         except Exception as e:
             await event.respond(f"Có lỗi khi chuyển tiếp tin nhắn: {str(e)}")
+            
     # Handle media messages from VIP users
     elif event.media and is_vip:
-        # Send the media to the channel
-        msg = await client.send_file(channel_id, event.media, caption=event.text)
-        # Generate a unique start parameter using the message ID
-        start_parameter = f'channel_{msg.id}'
-        start_link = f'https://t.me/{your_bot_username}?start={start_parameter}'
-        # Respond with the public link
+        # Send the media to the channel and get the message ID
+        msg = await client.send_file(channel_id, event.media, caption=event.message.text)
+        
+        # Generate a unique UUID for the custom message ID
+        custom_msg_id = str(uuid.uuid4())
+        
+        # Store the mapping of UUID to the actual Telegram message ID
+        config_instance.msg_id_mappings[custom_msg_id] = msg.id
+        
+        # Create a link with the custom message ID
+        start_link = f'https://t.me/{your_bot_username}?start=channel_{custom_msg_id}'
+        
+        # Send the link to the user
         await event.respond(
             f'Link công khai của bạn đã được tạo: {start_link}',
             buttons=[Button.url('Xem Media', start_link)]
         )
+        
     # Respond to non-VIP users or messages that do not contain media
     else:
         await event.respond(
