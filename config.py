@@ -10,7 +10,10 @@ bot_token = '7068498391:AAHumK7nbOHxdYvn7B81aysNxyy3oSWam4Y'
 your_bot_username = "sharefileTTGbot"
 channel_id = -1002001373543
 USER_ACTIVATIONS_API = "https://6626aa5f052332d553239fd6.mockapi.io/activation_links"
+
 USERS_ACCESS_API="https://6626aa5f052332d553239fd6.mockapi.io/Account"
+USER_MSG_ID_API = USERS_ACCESS_API # API ảnh xạ tin nhắn forward
+
 
 # bot_token="6737137775:AAEGBx0Y8jlV-7QxQvAIUvwU3BOpqYifSC8"
 # your_bot_username = "ShareFileVIPSbot"
@@ -42,4 +45,3 @@ class Config:
             cls._instance = super(Config, cls).__new__(cls)
             cls._instance.__init__()  # Gọi hàm khởi tạo
         return cls._instance
-

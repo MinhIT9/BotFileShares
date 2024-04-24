@@ -4,7 +4,7 @@ from datetime import timedelta
 import datetime, random, asyncio, threading, aiohttp, re, uuid
 from config import Config  # Import class Config
 from telethon import events, Button
-from api_utlis import delete_code_from_api, fetch_activation_links, save_single_user_access_to_api, load_users_access_from_api, get_or_create_users_access_object, schedule_remove_expired_users_access
+from api_utlis import delete_code_from_api, fetch_activation_links, save_single_user_access_to_api, load_users_access_from_api, get_or_create_users_access_object, schedule_remove_expired_users_access, load_msg_id_mapping_from_api, save_msg_id_mapping_to_api
 from config import (your_bot_username, channel_id, pending_activations, 
                     user_link_map, distributed_links, LINK_DURATION,
                     client, bot_token, USER_ACTIVATIONS_API)
@@ -299,6 +299,8 @@ async def handler(event):
         # Store the mapping of UUID to the actual Telegram message ID
         config_instance.msg_id_mappings[custom_msg_id] = msg.id
         
+        await save_msg_id_mapping_to_api(custom_msg_id, msg.id)
+     
         # Create a link with the custom message ID
         start_link = f'https://t.me/{your_bot_username}?start=channel_{custom_msg_id}'
         
@@ -316,9 +318,14 @@ async def handler(event):
         )
 
 async def initial_load():
-    global activation_links, users_access
+    global activation_links, users_access, msg_id_mappings
     activation_links = await fetch_activation_links()
     users_access = await load_users_access_from_api()
+    
+        # Load message ID mappings
+    msg_id_mappings = await load_msg_id_mapping_from_api()
+    config_instance.msg_id_mappings.update(msg_id_mappings)
+    print("msg_id_mappings: ", msg_id_mappings)
 
 if __name__ == '__main__':
     try:

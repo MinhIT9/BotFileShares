@@ -1,11 +1,55 @@
 # api_utlis.py 
 
 import requests, asyncio, aiohttp, datetime
-from config import USER_ACTIVATIONS_API, USERS_ACCESS_API, Config
+from config import USER_ACTIVATIONS_API, USERS_ACCESS_API, Config, USER_MSG_ID_API
 
 # Gán biến
 config_instance = Config()
 users_access = config_instance.users_access 
+
+
+async def save_msg_id_mapping_to_api(custom_msg_id, telegram_msg_id):
+    async with aiohttp.ClientSession() as session:
+        # Lấy thông tin hiện tại từ API
+        async with session.get(USER_MSG_ID_API) as get_response:
+            if get_response.status == 200:
+                current_data = await get_response.json()
+                # Tìm object cần cập nhật
+                for item in current_data:
+                    if 'msg_id_mapping' in item:
+                        # Cập nhật msg_id_mapping với UUID và Telegram message ID mới
+                        item['msg_id_mapping'][custom_msg_id] = telegram_msg_id
+                        # PUT cập nhật trở lại API
+                        async with session.put(f"{USER_MSG_ID_API}/{item['id']}", json=item) as put_response:
+                            if put_response.status in [200, 201]:
+                                print("Message ID mapping updated successfully.")
+                                return
+                print("Failed to find msg_id_mapping in any item.")
+            else:
+                print("Failed to fetch current data from API.")
+
+async def load_msg_id_mapping_from_api():
+    async with aiohttp.ClientSession() as session:
+        async with session.get(USER_MSG_ID_API) as response:
+            if response.status == 200:
+                accounts_data = await response.json()
+                msg_id_mappings = {}
+                for account in accounts_data:
+                    account_id = account['id']
+                    for uuid, msg_id in account.get('msg_id_mapping', {}).items():
+                        # Bảo đảm rằng các UUID không bị trùng lặp giữa các tài khoản
+                        if uuid in msg_id_mappings:
+                            print(f"Duplicate UUID found: {uuid}")
+                        else:
+                            msg_id_mappings[uuid] = msg_id
+                return msg_id_mappings
+            else:
+                print("Failed to load message ID mappings from API.")
+                return {}
+
+
+
+
 
 async def get_or_create_users_access_object():
     all_users_access = await get_all_users_access()
